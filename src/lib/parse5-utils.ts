@@ -7,9 +7,10 @@
  */
 
 // types only
-import {DefaultTreeElement, Node} from 'parse5';
+import {DocumentFragment, DefaultTreeNode, DefaultTreeElement, Node, DefaultTreeCommentNode, DefaultTreeDocumentFragment} from 'parse5';
+import * as parse5lib from 'parse5';
 
-const parse5 = require('parse5');
+const parse5 = require('parse5') as typeof parse5lib;
 const traverse = require('parse5-traverse');
 
 export const parseFragment = parse5.parseFragment;
@@ -90,22 +91,26 @@ export function insertNode(
   }
 }
 
-export function isCommentNode(node: any) {
-  return node.nodeName === '#comment'
+export function isElement(node: DefaultTreeNode): node is DefaultTreeElement {
+  return (node as DefaultTreeElement).tagName !== undefined;
 }
 
-export function isDocumentFragment(node: any) {
-  return node.nodeName === '#document-fragment'
+export function isCommentNode(node: DefaultTreeNode): node is DefaultTreeCommentNode {
+  return node.nodeName === '#comment';
 }
 
-export function isTextNode(node: any) {
-  return node.nodeName === '#text'
+export function isDocumentFragment(node: DefaultTreeNode): node is DefaultTreeDocumentFragment {
+  return node.nodeName === '#document-fragment';
 }
 
-export const defaultChildNodes = (node: any) => node.childNodes
+export function isTextNode(node: DefaultTreeNode): node is parse5lib.DefaultTreeTextNode {
+  return node.nodeName === '#text';
+}
 
-export function* depthFirst(node: any, getChildNodes: any = defaultChildNodes):
-    any {
+export const defaultChildNodes = (node: DefaultTreeElement) => node.childNodes;
+
+export function* depthFirst(node: DefaultTreeNode|DefaultTreeDocumentFragment, getChildNodes: any = defaultChildNodes):
+    Iterable<DefaultTreeNode> {
       yield node;
       const childNodes = getChildNodes(node);
       if (childNodes === undefined) {
