@@ -33,6 +33,7 @@ const Koa = require('koa') as Koa;
 const staticFiles = require('koa-static');
 const { nodeResolve } = require('koa-node-resolve');
 
+(window as any).require = require;
 const appModule = importModule('./app-server.js', import.meta.url, window);
 
 const port = 8080;

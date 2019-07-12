@@ -21,7 +21,9 @@
  */
 
 class HTMLElement {
-
+  attachShadow() {
+    return {};
+  }
 }
 
 class Document {
@@ -34,15 +36,25 @@ class CSSStyleSheet {
   replace() {}
 }
 
+type CustomElementRegistration = {
+  ctor: {new(): HTMLElement},
+  observedAttributes: string[],
+};
+
 class CustomElementRegistry {
-  private __definitions = new Map<string, {new(): HTMLElement}>();
+  private __definitions = new Map<string, CustomElementRegistration>();
 
   define(name: string, ctor: {new(): HTMLElement}) {
-    this.__definitions.set(name, ctor);
+    console.log('Custom element defined', name);
+    this.__definitions.set(name, {
+      ctor,
+      observedAttributes: (ctor as any).observedAttributes,
+    });
   }
 
   get(name: string) {
-    return this.__definitions.get(name);
+    const definition = this.__definitions.get(name);
+    return definition && definition.ctor;
   }
 }
 

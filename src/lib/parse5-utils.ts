@@ -9,8 +9,6 @@
 // types only
 import {DefaultTreeElement, Node} from 'parse5';
 
-// const require = module.createRequire(import.meta.url);
-
 const parse5 = require('parse5');
 const traverse = require('parse5-traverse');
 

@@ -42,7 +42,6 @@ const initializeImportMeta = (meta: any, module: vm.SourceTextModule) => {
 
 export const importModule = async (path: string, referrer: string, sandbox: any) => {
 
-  // const window = {};
   const context = vm.createContext(sandbox);
   const moduleCache = new Map<string, Promise<vm.SourceTextModule>>();
 
