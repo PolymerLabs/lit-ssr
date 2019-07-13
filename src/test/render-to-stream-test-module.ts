@@ -1,7 +1,7 @@
 import {html} from 'lit-html';
 import {LitElement, property, customElement} from 'lit-element';
 
-export { renderToStream } from '../lib/render-to-stream.js';
+export { renderNodePartToStream, renderToStream } from '../lib/render-to-stream.js';
 
 // Scratch pad...
 
@@ -43,6 +43,9 @@ export class TestSlot extends LitElement {
 
 export const slotWithStaticChild = html`<test-simple-slot><p>Hi</p></test-simple-slot>`;
 
+export const slotWithStaticChildren = html`<test-simple-slot><h1>Yo</h1><p>Hi</p></test-simple-slot>`;
+
+export const slotWithDynamicChild = html`<test-simple-slot>${html`<p>Hi</p>`}</test-simple-slot>`;
 
 // Tests to do:
 //  - simple template, no expressions
@@ -55,3 +58,10 @@ export const slotWithStaticChild = html`<test-simple-slot><p>Hi</p></test-simple
 //  - template w/ custom element, <slot>, static children in outer template
 //  - template w/ custom element, named <slot>, static children in outer template
 //  - template w/ custom element, named <slot>, children in nested template
+
+// This setup tests
+//  - that we render and slot children from deeply nested templates
+//  - that we keep distributed node state per TemplateResult _value_, not per
+//    TemplateResult, because of the reuse of the inner result.
+export const nestedTemplateResult = html`<div></div>`;
+export const trickyNestedDynamicChildren = html`<test-simple-slot>${html`${nestedTemplateResult}${nestedTemplateResult}`}</test-simple-slot>`;

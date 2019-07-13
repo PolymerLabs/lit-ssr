@@ -7,7 +7,7 @@
  */
 
 // types only
-import {DocumentFragment, DefaultTreeNode, DefaultTreeElement, Node, DefaultTreeCommentNode, DefaultTreeDocumentFragment} from 'parse5';
+import {DefaultTreeNode, DefaultTreeElement, Node, DefaultTreeCommentNode, DefaultTreeDocumentFragment} from 'parse5';
 import * as parse5lib from 'parse5';
 
 const parse5 = require('parse5') as typeof parse5lib;

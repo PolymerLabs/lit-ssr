@@ -48,7 +48,7 @@ const setup = async () => {
   return {
     ...appModule.namespace,
     getResult: () => writer.toString(),
-    render: (r: any) => appModule.namespace.renderToStream(r, writer),
+    render: (r: any) => appModule.namespace.renderNodePartToStream(r, writer),
   };
 };
 
@@ -110,5 +110,17 @@ test('simple custom element', async (t: tapelib.Test) => {
 test('custom element with slot and static child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithStaticChild} = await setup();
   render(slotWithStaticChild);
-  t.equal(getResult(), `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+  t.equal(getResult(), `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+});
+
+test('custom element with slot and two static children', async (t: tapelib.Test) => {
+  const {getResult, render, slotWithStaticChildren} = await setup();
+  render(slotWithStaticChildren);
+  t.equal(getResult(), `<!--lit-part LZW0XJWbf+0=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><h1>Yo</h1><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+});
+
+test.skip('custom element with slot and dynamic child', async (t: tapelib.Test) => {
+  const {getResult, render, slotWithDynamicChild} = await setup();
+  render(slotWithDynamicChild);
+  t.equal(getResult(), `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
