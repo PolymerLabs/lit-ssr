@@ -71,7 +71,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         stream.write(html.substring(lastOffset, offset));
         lastOffset = node.sourceCodeLocation!.endOffset;
 
-        const value = result.values[partIndex];
+        const value = result.values[partIndex++];
         if (value instanceof TemplateResult) {
           renderToStream(value, stream, claimedNodes, children);
         } else {
@@ -84,7 +84,6 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
           }
           stream.write(`<!--/lit-part-->`);
         }    
-        partIndex++;
       }
     } else if (isElement(node)) {
       if (claimedNodes.has(node)) {
@@ -95,53 +94,71 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         lastOffset = endOffset;
 
         // TODO: write the distributed node placeholder comment
-      }
-      const tagName = node.tagName;
-      if (tagName === 'slot') {
-        const slotName = getAttr(node, 'name');
-        if (children === undefined || children.nodes.length === 0) {
-          // render nothing? We need to get the distributed children here...
-          const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
-          lastOffset = endTagEndOffset;
-        } else {
-          for (const child of children.nodes) {
-            // All these children are from the same template
-            // While rendering nested templates, we may create children from
-            // other templates, so we can't render them by slicing the current
-            // html string. We'll have to evaluate the sub templates and stream
-            // them here...
-            if (isCommentNode(node) && (node.data === marker)) {
-              // TODO: render sub-template, pull in slotted chlidren here
-            } else {
-              // TODO: named slots
-              if (slotName === undefined) {
-                const startOffset = (child as any).sourceCodeLocation!.startOffset;
-                const endOffset = (child as any).sourceCodeLocation!.endOffset;
-                stream.write(children.html.substring(startOffset, endOffset));
-                claimedNodes.add(child);
-                // TODO: add an attribute for the placeholder comment id
+      } else {
+        const tagName = node.tagName;
+        for (const attr of node.attrs) {
+          if (attr.name.endsWith('$lit$')) {
+            const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
+            const attrNameStartOffset = attrSourceLocation.startOffset;
+            const attrEndOffset = attrSourceLocation.endOffset;
+            const value = result.values[partIndex++];
+
+            stream.write(html.substring(lastOffset, attrNameStartOffset));
+            stream.write(attr.name.substring(0, attr.name.length - 5));
+            stream.write('="');
+            stream.write(value);
+            stream.write('"');
+            lastOffset = attrEndOffset;
+
+            // TODO: render marker comment for attribute binding
+          }
+        }
+        if (tagName === 'slot') {
+          const slotName = getAttr(node, 'name');
+          if (children === undefined || children.nodes.length === 0) {
+            // render nothing? We need to get the distributed children here...
+            const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
+            lastOffset = endTagEndOffset;
+          } else {
+            for (const child of children.nodes) {
+              // All these children are from the same template
+              // While rendering nested templates, we may create children from
+              // other templates, so we can't render them by slicing the current
+              // html string. We'll have to evaluate the sub templates and stream
+              // them here...
+              if (isCommentNode(node) && (node.data === marker)) {
+                // TODO: render sub-template, pull in slotted chlidren here
+              } else {
+                // TODO: named slots
+                if (slotName === undefined) {
+                  const startOffset = (child as any).sourceCodeLocation!.startOffset;
+                  const endOffset = (child as any).sourceCodeLocation!.endOffset;
+                  stream.write(children.html.substring(startOffset, endOffset));
+                  claimedNodes.add(child);
+                  // TODO: add an attribute for the placeholder comment id
+                }
               }
             }
           }
-        }
-        lastOffset = node.sourceCodeLocation!.endOffset;
-      } else if (tagName.indexOf('-') !== -1) {
-        const ctor = customElements.get(tagName);
-        if (ctor !== undefined) {
-          // Write the start tag
-          const startTagEndOffset = node.sourceCodeLocation!.startTag.endOffset;
-          stream.write(html.substring(lastOffset, startTagEndOffset));
-          lastOffset = startTagEndOffset;
+          lastOffset = node.sourceCodeLocation!.endOffset;
+        } else if (tagName.indexOf('-') !== -1) {
+          const ctor = customElements.get(tagName);
+          if (ctor !== undefined) {
+            // Write the start tag
+            const startTagEndOffset = node.sourceCodeLocation!.startTag.endOffset;
+            stream.write(html.substring(lastOffset, startTagEndOffset));
+            lastOffset = startTagEndOffset;
 
-          // Instantiate the element and stream its render() result
-          const instance = new ctor();
-          renderToStream(instance.render(), stream, claimedNodes, {nodes: node.childNodes, html});
+            // Instantiate the element and stream its render() result
+            const instance = new ctor();
+            renderToStream(instance.render(), stream, claimedNodes, {nodes: node.childNodes, html});
 
-          // This turned out to be unneccessary in one case, maybe all?
-          // // Write the end tag
-          // const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
-          // stream.write(html.substring(lastOffset, endTagEndOffset));
-          // lastOffset = endTagEndOffset;
+            // This turned out to be unneccessary in one case, maybe all?
+            // // Write the end tag
+            // const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
+            // stream.write(html.substring(lastOffset, endTagEndOffset));
+            // lastOffset = endTagEndOffset;
+          }
         }
       }
     }

@@ -45,7 +45,6 @@ class CustomElementRegistry {
   private __definitions = new Map<string, CustomElementRegistration>();
 
   define(name: string, ctor: {new(): HTMLElement}) {
-    console.log('Custom element defined', name);
     this.__definitions.set(name, {
       ctor,
       observedAttributes: (ctor as any).observedAttributes,
