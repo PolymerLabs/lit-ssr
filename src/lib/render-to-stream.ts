@@ -58,7 +58,7 @@ export const renderNodePartToStream = (value: unknown, stream: Writable, claimed
       // do nothing
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
-      stream.write(value);
+      stream.write(String(value));
     }
   }
   stream.write(`<!--/lit-part-->`);
@@ -82,7 +82,13 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
 
   const {html, ast} = getTemplate(result);
 
+  /* The next value in result.values to render */
   let partIndex = 0;
+
+  /* The index of the last distributed value to be rendered to a slot */
+  let distributedIndex = -1;
+
+  /* The last offset of html written to the stream */
   let lastOffset: number|undefined = 0;
 
   const flushTo = (offset?: number) => {
@@ -102,10 +108,26 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
       if (node.data === marker) {
         flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
-        renderNodePartToStream(result.values[partIndex++], stream, claimedNodes, children);
+        const value = result.values[partIndex++];
+
+        if (partIndex <= distributedIndex) {
+          // This means we've already consumed this part during distribution
+          // into a slot, so we don't want to render the value, but we do want
+          // to render the part markers for subsequent hydration.
+          // TODO: we also want to render placeholder comments for the
+          // distributed nodes
+          if (value instanceof TemplateResult) {
+            stream.write(`<!--lit-part ${value.digest}--><!--/lit-part-->`);
+          } else {
+            stream.write(`<!--lit-part--><!--/lit-part-->`);
+          }
+        } else {
+          renderNodePartToStream(value, stream, claimedNodes, children);
+        }
       }
     } else if (isElement(node)) {
       if (claimedNodes.has(node)) {
+        console.log('claimed node', node.nodeName);
         // Skip the already distributed node
         flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
@@ -189,12 +211,14 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
               result,
               partIndex};
             renderNodePartToStream(instance.render(), stream, claimedNodes, childInfo);
-            partIndex = childInfo.partIndex;
+            distributedIndex = childInfo.partIndex;
           }
         }
       }
     }
   }
   flushTo();
-  console.assert(partIndex === result.values.length);
+  if (partIndex !== result.values.length) {
+    throw new Error(`unexpected final partIndex: ${partIndex} !== ${result.values.length}`);
+  }
 };

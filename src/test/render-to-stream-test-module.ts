@@ -45,7 +45,13 @@ export const slotWithStaticChild = html`<test-simple-slot><p>Hi</p></test-simple
 
 export const slotWithStaticChildren = html`<test-simple-slot><h1>Yo</h1><p>Hi</p></test-simple-slot>`;
 
-export const slotWithDynamicChild = html`<test-simple-slot>${html`<p>Hi</p>`}</test-simple-slot>`;
+const dynamicChild = html`<p>Hi</p>`;
+export const slotWithDynamicChild = html`<test-simple-slot>${dynamicChild}</test-simple-slot>`;
+
+export const slotWithDynamicChildAndMore = html`<test-simple-slot>${dynamicChild}</test-simple-slot>${42}`;
+
+export const slotWithReusedDynamicChild =
+  html`<test-simple-slot>${dynamicChild}</test-simple-slot>${dynamicChild}`;
 
 // Tests to do:
 //  - simple template, no expressions

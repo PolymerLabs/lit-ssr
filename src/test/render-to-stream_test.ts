@@ -119,8 +119,20 @@ test('custom element with slot and two static children', async (t: tapelib.Test)
   t.equal(getResult(), `<!--lit-part LZW0XJWbf+0=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><h1>Yo</h1><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
-test.skip('custom element with slot and dynamic child', async (t: tapelib.Test) => {
+test('custom element with slot and dynamic child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithDynamicChild} = await setup();
   render(slotWithDynamicChild);
-  t.equal(getResult(), `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+  t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+});
+
+test('custom element with slot and dynamic child and more bindings', async (t: tapelib.Test) => {
+  const {getResult, render, slotWithDynamicChildAndMore} = await setup();
+  render(slotWithDynamicChildAndMore);
+  t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part-->42<!--/lit-part--><!--/lit-part-->`);
+});
+
+test('custom element with slot and reused dynamic child', async (t: tapelib.Test) => {
+  const {getResult, render, slotWithReusedDynamicChild} = await setup();
+  render(slotWithReusedDynamicChild);
+  t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--><!--/lit-part-->`);
 });
