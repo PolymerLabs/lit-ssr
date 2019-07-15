@@ -136,3 +136,15 @@ test('custom element with slot and reused dynamic child', async (t: tapelib.Test
   render(slotWithReusedDynamicChild);
   t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--><!--/lit-part-->`);
 });
+
+test('custom element with two slots and static children', async (t: tapelib.Test) => {
+  const {getResult, render, twoSlotsWithStaticChildren} = await setup();
+  render(twoSlotsWithStaticChildren);
+  t.equal(getResult(), `<!--lit-part fsyeGt7exVM=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
+});
+
+test('custom element with two slots and static children out of order', async (t: tapelib.Test) => {
+  const {getResult, render, twoSlotsWithStaticChildrenOutOfOrder} = await setup();
+  render(twoSlotsWithStaticChildrenOutOfOrder);
+  t.equal(getResult(), `<!--lit-part aEEMZuiFlNA=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
+});

@@ -127,7 +127,6 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
       }
     } else if (isElement(node)) {
       if (claimedNodes.has(node)) {
-        console.log('claimed node', node.nodeName);
         // Skip the already distributed node
         flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
@@ -185,7 +184,8 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 }
               } else {
                 // TODO: named slots
-                if (slotName === undefined) {
+                const chldSlotName = getAttr(child, 'slot');
+                if (slotName === chldSlotName) {
                   const startOffset = (child as any).sourceCodeLocation!.startOffset;
                   const endOffset = (child as any).sourceCodeLocation!.endOffset;
                   stream.write(children.html.substring(startOffset, endOffset));

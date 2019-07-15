@@ -53,6 +53,18 @@ export const slotWithDynamicChildAndMore = html`<test-simple-slot>${dynamicChild
 export const slotWithReusedDynamicChild =
   html`<test-simple-slot>${dynamicChild}</test-simple-slot>${dynamicChild}`;
 
+  @customElement('test-two-slots')
+  export class TestTwoSlots extends LitElement {
+    render() {
+      return html`<main><slot></slot></main><slot name="a"></slot>`;
+    }
+  }
+  
+export const twoSlotsWithStaticChildren = html`<test-two-slots><h1>Yo</h1><p slot="a">Hi</p></test-two-slots>`;
+
+export const twoSlotsWithStaticChildrenOutOfOrder = html`<test-two-slots><p slot="a">Hi</p><h1>Yo</h1></test-two-slots>`;
+
+
 // Tests to do:
 //  - simple template, no expressions
 //  - simple template, text expressions
