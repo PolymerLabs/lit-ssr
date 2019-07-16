@@ -64,6 +64,7 @@ export const twoSlotsWithStaticChildren = html`<test-two-slots><h1>Yo</h1><p slo
 
 export const twoSlotsWithStaticChildrenOutOfOrder = html`<test-two-slots><p slot="a">Hi</p><h1>Yo</h1></test-two-slots>`;
 
+export const twoSlotsWithDynamicChildren = html`<test-two-slots>${html`<h1>Yo</h1><p slot="a">Hi</p>`}</test-two-slots>`;
 
 // Tests to do:
 //  - simple template, no expressions
@@ -76,6 +77,7 @@ export const twoSlotsWithStaticChildrenOutOfOrder = html`<test-two-slots><p slot
 //  - template w/ custom element, <slot>, static children in outer template
 //  - template w/ custom element, named <slot>, static children in outer template
 //  - template w/ custom element, named <slot>, children in nested template
+//  - dynamic <slot>s
 
 // This setup tests
 //  - that we render and slot children from deeply nested templates

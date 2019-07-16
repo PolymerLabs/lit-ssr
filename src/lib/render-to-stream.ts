@@ -47,11 +47,18 @@ type ChildInfo = {
   result: TemplateResult;
   partIndex: number;
 };
+type SlotInfo = {
+  slotName: string;
+};
+type RenderInfo = {
+  children?: ChildInfo;
+  slot?: SlotInfo;
+}
 
-export const renderNodePartToStream = (value: unknown, stream: Writable, claimedNodes: Set<Node> = new Set(), children?: ChildInfo) => {
+export const renderNodePartToStream = (value: unknown, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo) => {
   if (value instanceof TemplateResult) {
     stream.write(`<!--lit-part ${value.digest}-->`);
-    renderToStream(value, stream, claimedNodes, children);
+    renderToStream(value, stream, claimedNodes, renderInfo);
   } else {
     stream.write(`<!--lit-part-->`);
     if (value === undefined || value === null) {
@@ -64,7 +71,7 @@ export const renderNodePartToStream = (value: unknown, stream: Writable, claimed
   stream.write(`<!--/lit-part-->`);
 }
 
-export const renderToStream = (result: TemplateResult, stream: Writable, claimedNodes: Set<Node> = new Set(), children?: ChildInfo) => {
+export const renderToStream = (result: TemplateResult, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}) => {
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -122,7 +129,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             stream.write(`<!--lit-part--><!--/lit-part-->`);
           }
         } else {
-          renderNodePartToStream(value, stream, claimedNodes, children);
+          renderNodePartToStream(value, stream, claimedNodes, renderInfo);
         }
       }
     } else if (isElement(node)) {
@@ -153,13 +160,14 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         if (tagName === 'slot') {
           flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
-          if (children === undefined || children.nodes.length === 0) {
+          if (renderInfo.children === undefined || renderInfo.children.nodes.length === 0) {
             // render nothing? We need to get the distributed children here...
             const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
             lastOffset = endTagEndOffset;
           } else {
             // console.log('in slot have children', children);
-            for (const child of children.nodes) {
+            let childPartIndex = renderInfo.children.partIndex;
+            for (const child of renderInfo.children.nodes) {
               // All these children are from the same template
               // While rendering nested templates, we may create children from
               // other templates, so we can't render them by slicing the current
@@ -174,26 +182,31 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 //  - get the TemplateResult value
                 //  - render the template
                 //  - iterate through the rendered result...
-                const childValue = children.result.values[children.partIndex++];
+                console.log({slotName, childPartIndex});
+                const childValue = renderInfo.children.result.values[childPartIndex++];
                 // TODO: this renders the child value in this slot, but we need
                 // to render the part marker at the original location at [1]
                 if (childValue instanceof TemplateResult) {
-                  renderToStream(childValue, stream);
+                  renderToStream(childValue, stream, claimedNodes, {slot: {slotName}});
                 } else {
-                  stream.write(childValue);
+                  if (childValue === null || childValue === undefined) {
+                    // do nothing
+                  } else {
+                    stream.write(String(childValue));
+                  }
                 }
               } else {
-                // TODO: named slots
                 const chldSlotName = getAttr(child, 'slot');
                 if (slotName === chldSlotName) {
                   const startOffset = (child as any).sourceCodeLocation!.startOffset;
                   const endOffset = (child as any).sourceCodeLocation!.endOffset;
-                  stream.write(children.html.substring(startOffset, endOffset));
+                  stream.write(renderInfo.children.html.substring(startOffset, endOffset));
                   claimedNodes.add(child);
                   // TODO: add an attribute for the placeholder comment id
                 }
               }
             }
+            renderInfo.children.partIndex = childPartIndex;
           }
           lastOffset = node.sourceCodeLocation!.endOffset;
         } else if (tagName.indexOf('-') !== -1) {
@@ -210,7 +223,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
               html,
               result,
               partIndex};
-            renderNodePartToStream(instance.render(), stream, claimedNodes, childInfo);
+            renderNodePartToStream(instance.render(), stream, claimedNodes, {children: childInfo});
             distributedIndex = childInfo.partIndex;
           }
         }
