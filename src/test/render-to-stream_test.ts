@@ -107,49 +107,52 @@ test('simple custom element', async (t: tapelib.Test) => {
   t.equal(getResult(), `<!--lit-part tjmYe1kHIVM=--><test-simple><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--></test-simple><!--/lit-part-->`);
 });
 
-test('custom element with slot and static child', async (t: tapelib.Test) => {
+
+/* Slots and Distribution */
+
+test('slot and static child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithStaticChild} = await setup();
   render(slotWithStaticChild);
   t.equal(getResult(), `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
-test('custom element with slot and two static children', async (t: tapelib.Test) => {
+test('slot and two static children', async (t: tapelib.Test) => {
   const {getResult, render, slotWithStaticChildren} = await setup();
   render(slotWithStaticChildren);
   t.equal(getResult(), `<!--lit-part LZW0XJWbf+0=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><h1>Yo</h1><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
-test('custom element with slot and dynamic child', async (t: tapelib.Test) => {
+test('slot and dynamic child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithDynamicChild} = await setup();
   render(slotWithDynamicChild);
   t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
-test('custom element with slot and dynamic child and more bindings', async (t: tapelib.Test) => {
+test('slot and dynamic child and more bindings', async (t: tapelib.Test) => {
   const {getResult, render, slotWithDynamicChildAndMore} = await setup();
   render(slotWithDynamicChildAndMore);
   t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part-->42<!--/lit-part--><!--/lit-part-->`);
 });
 
-test('custom element with slot and reused dynamic child', async (t: tapelib.Test) => {
+test('slot and reused dynamic child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithReusedDynamicChild} = await setup();
   render(slotWithReusedDynamicChild);
   t.equal(getResult(), `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--><!--/lit-part-->`);
 });
 
-test('custom element with two slots and static children', async (t: tapelib.Test) => {
+test('two slots and static children', async (t: tapelib.Test) => {
   const {getResult, render, twoSlotsWithStaticChildren} = await setup();
   render(twoSlotsWithStaticChildren);
   t.equal(getResult(), `<!--lit-part fsyeGt7exVM=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
 });
 
-test('custom element with two slots and static children out of order', async (t: tapelib.Test) => {
+test('two slots and static children out of order', async (t: tapelib.Test) => {
   const {getResult, render, twoSlotsWithStaticChildrenOutOfOrder} = await setup();
   render(twoSlotsWithStaticChildrenOutOfOrder);
   t.equal(getResult(), `<!--lit-part aEEMZuiFlNA=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
 });
 
-test.skip('custom element with two slots and dynamic children', async (t: tapelib.Test) => {
+test.skip('two slots and dynamic children', async (t: tapelib.Test) => {
   const {getResult, render, twoSlotsWithDynamicChildren} = await setup();
   render(twoSlotsWithDynamicChildren);
   t.equal(getResult(), `<!--lit-part fsyeGt7exVM=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);

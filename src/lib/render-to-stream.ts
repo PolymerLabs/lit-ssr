@@ -19,7 +19,7 @@ import { Writable } from 'stream';
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
 
-import { depthFirst, parseFragment, isCommentNode, isElement, getAttr } from './parse5-utils.js';
+import { depthFirst, parseFragment, isCommentNode, isElement, getAttr, isTextNode } from './parse5-utils.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -72,6 +72,7 @@ export const renderNodePartToStream = (value: unknown, stream: Writable, claimed
 }
 
 export const renderToStream = (result: TemplateResult, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}) => {
+  const {slot} = renderInfo;
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -110,7 +111,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
     lastOffset = offset;
   };
 
-  for (const node of depthFirst(ast)) {
+  const handleNode = (node: DefaultTreeNode) => {
     if (isCommentNode(node)) {
       if (node.data === marker) {
         flushTo(node.sourceCodeLocation!.startOffset);
@@ -147,7 +148,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             const attrEndOffset = attrSourceLocation.endOffset;
             const value = result.values[partIndex++];
 
-            stream.write(html.substring(lastOffset, attrNameStartOffset));
+            stream.write(html.substring(lastOffset!, attrNameStartOffset));
             stream.write(attr.name.substring(0, attr.name.length - 5));
             stream.write('="');
             stream.write(value);
@@ -160,6 +161,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         if (tagName === 'slot') {
           flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
+          console.log('slot', slotName);
           if (renderInfo.children === undefined || renderInfo.children.nodes.length === 0) {
             // render nothing? We need to get the distributed children here...
             const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
@@ -187,6 +189,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 // TODO: this renders the child value in this slot, but we need
                 // to render the part marker at the original location at [1]
                 if (childValue instanceof TemplateResult) {
+                  console.log('A');
                   renderToStream(childValue, stream, claimedNodes, {slot: {slotName}});
                 } else {
                   if (childValue === null || childValue === undefined) {
@@ -230,6 +233,39 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
       }
     }
   }
+
+  // At the top-level of a TemplateResult we may have nodes that are children of
+  // an element with slots, so we need to handle top-level nodes specially in an
+  // outer loop. From there we perform a depth-first traversal.
+  if (ast.childNodes === undefined) {
+    return;
+  }
+  console.log('renderToStream', slot !== undefined, slot && slot.slotName);
+  for (const node of ast.childNodes) {
+    if (slot !== undefined) {
+      if (isElement(node)) {
+        const nodeSlotName = getAttr(node, 'slot');
+        console.log('slotting element', node.nodeName, nodeSlotName, nodeSlotName === slot.slotName);
+        if (nodeSlotName === slot.slotName) {
+          skipTo(node.sourceCodeLocation!.startOffset);
+          for (const child of depthFirst(node)) {
+            handleNode(child);
+          }
+        } else {
+          skipTo(node.sourceCodeLocation!.endOffset);
+        }
+      } else if (slot.slotName === undefined && isTextNode(node)) {
+        for (const child of depthFirst(node)) {
+          handleNode(child);
+        }
+      }
+     } else {
+      for (const child of depthFirst(node)) {
+        handleNode(child);
+      }
+    }
+  }
+
   flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(`unexpected final partIndex: ${partIndex} !== ${result.values.length}`);
