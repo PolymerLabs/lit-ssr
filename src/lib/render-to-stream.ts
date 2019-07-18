@@ -17,9 +17,10 @@ import {marker} from 'lit-html/lib/template.js';
 import { Writable } from 'stream';
 
 // types only
-import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
+import {Node, DefaultTreeDocumentFragment, DefaultTreeNode, DefaultTreeElement} from 'parse5';
 
 import { depthFirst, parseFragment, isCommentNode, isElement, getAttr, isTextNode } from './parse5-utils.js';
+import { LitElement } from 'lit-element';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -113,14 +114,11 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
   };
 
   const handleNode = (node: DefaultTreeNode) => {
-    console.log('handleNode', node.nodeName);
     if (isCommentNode(node)) {
       if (node.data === marker) {
         flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
-        console.log('expression marker', value);
-        console.log(partIndex, distributedIndex, partIndex <= distributedIndex)
 
         if (partIndex <= distributedIndex) {
           // This means we've already consumed this part during distribution
@@ -138,6 +136,10 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         }
       }
     } else if (isElement(node)) {
+      // If the element is custom, this will be the instantiated class
+      let instance: LitElement|undefined = undefined;
+      let writeTag = false;
+
       if (claimedNodes.has(node)) {
         // Skip the already distributed node
         flushTo(node.sourceCodeLocation!.startOffset);
@@ -145,33 +147,15 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         // [1] TODO: write the distributed node placeholder comment
       } else {
         const tagName = node.tagName;
-        for (const attr of node.attrs) {
-          if (attr.name.endsWith('$lit$')) {
-            const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
-            const attrNameStartOffset = attrSourceLocation.startOffset;
-            const attrEndOffset = attrSourceLocation.endOffset;
-            const value = result.values[partIndex++];
 
-            stream.write(html.substring(lastOffset!, attrNameStartOffset));
-            stream.write(attr.name.substring(0, attr.name.length - 5));
-            stream.write('="');
-            stream.write(value);
-            stream.write('"');
-            lastOffset = attrEndOffset;
-
-            // TODO: render marker comment for attribute binding
-          }
-        }
         if (tagName === 'slot') {
           flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
-          console.log('slot', slotName);
           if (renderInfo.children === undefined || renderInfo.children.nodes.length === 0) {
             // render nothing? We need to get the distributed children here...
             const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
             lastOffset = endTagEndOffset;
           } else {
-            console.log('in slot');
             childPartIndex = renderInfo.children.partIndex;
             for (const child of renderInfo.children.nodes) {
               // All these children are from the same template
@@ -179,21 +163,17 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
               // other templates, so we can't render them by slicing the current
               // html string. We'll have to evaluate the sub templates and stream
               // them here...
-              // console.log('child', child.nodeName);
               if (isCommentNode(child) && (child.data === marker)) {
                 // TODO: render sub-template, pull in slotted chlidren here
-                // console.log('dynamic child');
                 // What do we need to do to render children from another templates?
                 //  - increment the partIndex from where the child marker node came from
                 //  - get the TemplateResult value
                 //  - render the template
                 //  - iterate through the rendered result...
-                console.log({slotName, childPartIndex});
                 const childValue = renderInfo.children.result.values[childPartIndex++];
                 // TODO: this renders the child value in this slot, but we need
                 // to render the part marker at the original location at [1]
                 if (childValue instanceof TemplateResult) {
-                  console.log('A');
                   renderToStream(childValue, stream, claimedNodes, {slot: {slotName}});
                 } else {
                   if (childValue === null || childValue === undefined) {
@@ -215,26 +195,62 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             }
             // renderInfo.children.partIndex = childPartIndex;
           }
-          lastOffset = node.sourceCodeLocation!.endOffset;
+          skipTo(node.sourceCodeLocation!.endOffset);
         } else if (tagName.indexOf('-') !== -1) {
           const ctor = customElements.get(tagName);
           if (ctor !== undefined) {
             // Write the start tag
-            flushTo(node.sourceCodeLocation!.startTag.endOffset);
+            // flushTo(node.sourceCodeLocation!.startTag.endOffset);
+            writeTag = true;
 
             // Instantiate the element and stream its render() result
-            // TODO: try/catch
-            const instance = new ctor();
-            const childInfo = {
-              nodes: node.childNodes,
-              html,
-              result,
-              partIndex};
-            renderNodePartToStream(instance.render(), stream, claimedNodes, {children: childInfo});
-            // distributedIndex = childInfo.partIndex;
-            distributedIndex = childInfo.partIndex;
+            try {
+              instance = new ctor();
+            } catch (e) {
+              console.error('Exception in custom element constructor', e);
+            }
           }
         }
+
+        // Handle attributes
+
+        for (const attr of node.attrs) {
+          if (attr.name.endsWith('$lit$')) {
+            const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
+            const attrNameStartOffset = attrSourceLocation.startOffset;
+            const attrEndOffset = attrSourceLocation.endOffset;
+            const value = result.values[partIndex++];
+
+            stream.write(html.substring(lastOffset!, attrNameStartOffset));
+
+            if (attr.name.startsWith('.')) {
+              const propertyName = attr.name.substring(1, attr.name.length - 5);
+              if (instance !== undefined) {
+                (instance as any)[propertyName] = value;
+              }
+            } else {
+              const attributeName = attr.name.substring(0, attr.name.length - 5);
+              stream.write(`${attributeName}="${value}"`);
+            }
+            skipTo(attrEndOffset);
+            // TODO: render marker comment for attribute binding?
+          }
+        }
+
+        if (writeTag) {
+          flushTo(node.sourceCodeLocation!.startTag.endOffset);
+        }
+
+        if (instance !== undefined) {
+          const childInfo = {
+            nodes: node.childNodes,
+            html,
+            result,
+            partIndex};
+          renderNodePartToStream((instance as unknown as {render(): TemplateResult}).render(), stream, claimedNodes, {children: childInfo});
+          distributedIndex = childInfo.partIndex;
+        }
+
       }
     }
   }
@@ -245,19 +261,16 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
   if (ast.childNodes === undefined) {
     return;
   }
-  console.log('renderToStream', slot !== undefined, slot && slot.slotName);
   for (const node of ast.childNodes) {
     if (slot !== undefined) {
       if (isElement(node)) {
         const nodeSlotName = getAttr(node, 'slot');
-        console.log('slotting element', node.nodeName, nodeSlotName, nodeSlotName === slot.slotName);
         if (nodeSlotName === slot.slotName) {
           skipTo(node.sourceCodeLocation!.startOffset);
           for (const child of depthFirst(node)) {
             handleNode(child);
           }
           flushTo(node.sourceCodeLocation!.endOffset);
-          // claimedNodes.add(node);
         } else {
           skipTo(node.sourceCodeLocation!.endOffset);
         }

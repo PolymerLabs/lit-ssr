@@ -47,6 +47,17 @@ export class TestSimple extends LitElement {
 
 export const simpleTemplateWithElement = html`<test-simple></test-simple>`;
 
+@customElement('test-property')
+export class TestProperty extends LitElement {
+  @property() foo?: string;
+
+  render() {
+    return html`<main>${this.foo}</main>`;
+  }
+}
+
+export const elementWithProperty = html`<test-property .foo=${'bar'}></test-property>`;
+
 
 /* Slots and Distribution */
 

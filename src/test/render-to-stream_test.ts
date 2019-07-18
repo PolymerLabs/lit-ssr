@@ -107,6 +107,13 @@ test('simple custom element', async (t: tapelib.Test) => {
   t.equal(getResult(), `<!--lit-part tjmYe1kHIVM=--><test-simple><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--></test-simple><!--/lit-part-->`);
 });
 
+test('element with property', async (t: tapelib.Test) => {
+  const {getResult, render, elementWithProperty} = await setup();
+  render(elementWithProperty);
+  // TODO: we'd like to remove the space in the start tag
+  t.equal(getResult(), `<!--lit-part v2CxGIW+qHI=--><test-property ><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></test-property><!--/lit-part-->`);
+});
+
 
 /* Slots and Distribution */
 
