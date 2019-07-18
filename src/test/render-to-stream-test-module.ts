@@ -15,15 +15,28 @@ export class XFoo extends LitElement {
 }
 export const workTemplate = (s: string) => html`<div><x-foo><p>woot</p></x-foo>${s}</div>`;
 
-// Real tests...
+
+/* Real Tests */
 
 export const simpleTemplateResult = html`<div></div>`;
 
+
+/* Text Expressions */
+
 export const templateWithTextExpression = (x: any) => html`<div>${x}</div>`;
+
+
+/* Attribute Expressions */
 
 export const templateWithAttributeExpression = (x: any) => html`<div class=${x}></div>`;
 
+
+/* Nested Templates */
+
 export const nestedTemplate = html`<div>${html`<p>Hi</p>`}</div>`;
+
+
+/* Custom Elements */
 
 @customElement('test-simple')
 export class TestSimple extends LitElement {
@@ -33,6 +46,9 @@ export class TestSimple extends LitElement {
 }
 
 export const simpleTemplateWithElement = html`<test-simple></test-simple>`;
+
+
+/* Slots and Distribution */
 
 @customElement('test-simple-slot')
 export class TestSlot extends LitElement {
@@ -65,6 +81,8 @@ export const twoSlotsWithStaticChildren = html`<test-two-slots><h1>Yo</h1><p slo
 export const twoSlotsWithStaticChildrenOutOfOrder = html`<test-two-slots><p slot="a">Hi</p><h1>Yo</h1></test-two-slots>`;
 
 export const twoSlotsWithDynamicChildren = html`<test-two-slots>${html`<h1>Yo</h1><p slot="a">Hi</p>`}</test-two-slots>`;
+
+export const twoSlotsWithDynamicChildrenOutOfOrder = html`<test-two-slots>${html`<p slot="a">Hi</p><h1>Yo</h1>`}</test-two-slots>`;
 
 // Tests to do:
 //  - simple template, no expressions

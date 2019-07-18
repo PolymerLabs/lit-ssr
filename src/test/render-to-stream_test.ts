@@ -152,8 +152,14 @@ test('two slots and static children out of order', async (t: tapelib.Test) => {
   t.equal(getResult(), `<!--lit-part aEEMZuiFlNA=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
 });
 
-test.skip('two slots and dynamic children', async (t: tapelib.Test) => {
+test('two slots and dynamic children', async (t: tapelib.Test) => {
   const {getResult, render, twoSlotsWithDynamicChildren} = await setup();
   render(twoSlotsWithDynamicChildren);
-  t.equal(getResult(), `<!--lit-part fsyeGt7exVM=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`);
+  t.equal(getResult(), `<!--lit-part thp7M3lVHrI=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--><!--lit-part bSf9M2IgJsk=--><!--/lit-part--></test-two-slots><!--/lit-part-->`);
+});
+
+test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
+  const {getResult, render, twoSlotsWithDynamicChildrenOutOfOrder} = await setup();
+  render(twoSlotsWithDynamicChildrenOutOfOrder);
+  t.equal(getResult(), `<!--lit-part thp7M3lVHrI=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--><!--lit-part O/QniJQm82M=--><!--/lit-part--></test-two-slots><!--/lit-part-->`);
 });

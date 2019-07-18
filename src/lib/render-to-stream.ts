@@ -73,6 +73,7 @@ export const renderNodePartToStream = (value: unknown, stream: Writable, claimed
 
 export const renderToStream = (result: TemplateResult, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}) => {
   const {slot} = renderInfo;
+  let childPartIndex: number|undefined;
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -112,11 +113,14 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
   };
 
   const handleNode = (node: DefaultTreeNode) => {
+    console.log('handleNode', node.nodeName);
     if (isCommentNode(node)) {
       if (node.data === marker) {
         flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
+        console.log('expression marker', value);
+        console.log(partIndex, distributedIndex, partIndex <= distributedIndex)
 
         if (partIndex <= distributedIndex) {
           // This means we've already consumed this part during distribution
@@ -167,8 +171,8 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
             lastOffset = endTagEndOffset;
           } else {
-            // console.log('in slot have children', children);
-            let childPartIndex = renderInfo.children.partIndex;
+            console.log('in slot');
+            childPartIndex = renderInfo.children.partIndex;
             for (const child of renderInfo.children.nodes) {
               // All these children are from the same template
               // While rendering nested templates, we may create children from
@@ -199,8 +203,8 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                   }
                 }
               } else {
-                const chldSlotName = getAttr(child, 'slot');
-                if (slotName === chldSlotName) {
+                const childSlotName = getAttr(child, 'slot');
+                if (slotName === childSlotName) {
                   const startOffset = (child as any).sourceCodeLocation!.startOffset;
                   const endOffset = (child as any).sourceCodeLocation!.endOffset;
                   stream.write(renderInfo.children.html.substring(startOffset, endOffset));
@@ -209,7 +213,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 }
               }
             }
-            renderInfo.children.partIndex = childPartIndex;
+            // renderInfo.children.partIndex = childPartIndex;
           }
           lastOffset = node.sourceCodeLocation!.endOffset;
         } else if (tagName.indexOf('-') !== -1) {
@@ -227,6 +231,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
               result,
               partIndex};
             renderNodePartToStream(instance.render(), stream, claimedNodes, {children: childInfo});
+            // distributedIndex = childInfo.partIndex;
             distributedIndex = childInfo.partIndex;
           }
         }
@@ -251,6 +256,8 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
           for (const child of depthFirst(node)) {
             handleNode(child);
           }
+          flushTo(node.sourceCodeLocation!.endOffset);
+          // claimedNodes.add(node);
         } else {
           skipTo(node.sourceCodeLocation!.endOffset);
         }
@@ -259,11 +266,14 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
           handleNode(child);
         }
       }
-     } else {
+    } else {
       for (const child of depthFirst(node)) {
         handleNode(child);
       }
     }
+  }
+  if (renderInfo.children !== undefined && childPartIndex !== undefined) {
+    renderInfo.children.partIndex = childPartIndex;
   }
 
   flushTo();
