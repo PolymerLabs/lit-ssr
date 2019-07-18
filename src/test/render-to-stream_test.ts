@@ -117,6 +117,15 @@ test('element with property', async (t: tapelib.Test) => {
 
 /* Slots and Distribution */
 
+test('no slot', async (t: tapelib.Test) => {
+  const {getResult, render, noSlot} = await setup();
+  render(noSlot);
+  // TODO: this is probably a bit wrong, because we don't want to display
+  // non-slotted children, but we do need to put them somewhere. We probably
+  // need to hide them via styling
+  t.equal(getResult(), `<!--lit-part OpS0yFtM48Q=--><test-simple><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--><p>Hi</p></test-simple><!--/lit-part-->`);
+});
+
 test('slot and static child', async (t: tapelib.Test) => {
   const {getResult, render, slotWithStaticChild} = await setup();
   render(slotWithStaticChild);
@@ -169,4 +178,17 @@ test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
   const {getResult, render, twoSlotsWithDynamicChildrenOutOfOrder} = await setup();
   render(twoSlotsWithDynamicChildrenOutOfOrder);
   t.equal(getResult(), `<!--lit-part thp7M3lVHrI=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--><!--lit-part O/QniJQm82M=--><!--/lit-part--></test-two-slots><!--/lit-part-->`);
+});
+
+test('dynamic slot', async (t: tapelib.Test) => {
+  const {getResult, render, dynamicSlot} = await setup();
+  render(dynamicSlot(true));
+  t.equal(getResult(), `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
+});
+
+test('dynamic slot, unrendered', async (t: tapelib.Test) => {
+  const {getResult, render, dynamicSlot} = await setup();
+  render(dynamicSlot(false));
+  // TODO: this is a bit wrong. See the comment in the "no slot" test
+  t.equal(getResult(), `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
 });

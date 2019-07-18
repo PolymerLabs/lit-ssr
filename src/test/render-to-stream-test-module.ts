@@ -1,4 +1,4 @@
-import {html} from 'lit-html';
+import {html, nothing} from 'lit-html';
 import {LitElement, property, customElement} from 'lit-element';
 
 export { renderNodePartToStream, renderToStream } from '../lib/render-to-stream.js';
@@ -61,6 +61,8 @@ export const elementWithProperty = html`<test-property .foo=${'bar'}></test-prop
 
 /* Slots and Distribution */
 
+export const noSlot = html`<test-simple><p>Hi</p></test-simple>`;
+
 @customElement('test-simple-slot')
 export class TestSlot extends LitElement {
   render() {
@@ -80,12 +82,12 @@ export const slotWithDynamicChildAndMore = html`<test-simple-slot>${dynamicChild
 export const slotWithReusedDynamicChild =
   html`<test-simple-slot>${dynamicChild}</test-simple-slot>${dynamicChild}`;
 
-  @customElement('test-two-slots')
-  export class TestTwoSlots extends LitElement {
-    render() {
-      return html`<main><slot></slot></main><slot name="a"></slot>`;
-    }
+@customElement('test-two-slots')
+export class TestTwoSlots extends LitElement {
+  render() {
+    return html`<main><slot></slot></main><slot name="a"></slot>`;
   }
+}
   
 export const twoSlotsWithStaticChildren = html`<test-two-slots><h1>Yo</h1><p slot="a">Hi</p></test-two-slots>`;
 
@@ -94,6 +96,15 @@ export const twoSlotsWithStaticChildrenOutOfOrder = html`<test-two-slots><p slot
 export const twoSlotsWithDynamicChildren = html`<test-two-slots>${html`<h1>Yo</h1><p slot="a">Hi</p>`}</test-two-slots>`;
 
 export const twoSlotsWithDynamicChildrenOutOfOrder = html`<test-two-slots>${html`<p slot="a">Hi</p><h1>Yo</h1>`}</test-two-slots>`;
+
+@customElement('test-dynamic-slot')
+export class TestDynamicSlot extends LitElement {
+  @property() renderSlot = true;
+  render() {
+    return html`${this.renderSlot ? html`<slot></slot>` : nothing}`;
+  }
+}
+export const dynamicSlot = (renderSlot: boolean) => html`<test-dynamic-slot .renderSlot=${renderSlot}><p>Hi</p></test-dynamic-slot>`;
 
 // Tests to do:
 //  - simple template, no expressions
