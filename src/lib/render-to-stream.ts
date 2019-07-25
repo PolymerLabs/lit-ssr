@@ -17,10 +17,11 @@ import {marker} from 'lit-html/lib/template.js';
 import { Writable } from 'stream';
 
 // types only
-import {Node, DefaultTreeDocumentFragment, DefaultTreeNode, DefaultTreeElement} from 'parse5';
+import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
 
 import { depthFirst, parseFragment, isCommentNode, isElement, getAttr, isTextNode } from './parse5-utils.js';
-import { LitElement } from 'lit-element';
+import { LitElement, CSSResult } from 'lit-element';
+import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -54,6 +55,29 @@ type SlotInfo = {
 type RenderInfo = {
   children?: ChildInfo;
   slot?: SlotInfo;
+}
+
+declare global {
+  interface Array<T> {
+    flat(depth: number): Array<T>;
+  }
+}
+
+/**
+ * Returns the scoped style sheets required by all elements currently defined.
+ */
+export const getScopedStyles = () => {
+  const scopedStyles = [];
+  for (const [tagName, definition] of (customElements as any).__definitions) {
+    const styles = [(definition.ctor as any).styles].flat(Infinity);
+    for (const style of styles) {
+      if (style instanceof CSSResult) {
+        const scoped = StyleTransformer.css(style.cssText, tagName);
+        scopedStyles.push(scoped);
+      }
+    }
+  }
+  return scopedStyles;
 }
 
 export const renderNodePartToStream = (value: unknown, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo) => {

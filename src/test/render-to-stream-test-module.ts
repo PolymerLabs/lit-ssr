@@ -1,7 +1,7 @@
 import {html, nothing} from 'lit-html';
-import {LitElement, property, customElement} from 'lit-element';
+import {LitElement, css, property, customElement} from 'lit-element';
 
-export { renderNodePartToStream, renderToStream } from '../lib/render-to-stream.js';
+export { renderNodePartToStream, renderToStream, getScopedStyles } from '../lib/render-to-stream.js';
 
 // Scratch pad...
 
@@ -105,6 +105,15 @@ export class TestDynamicSlot extends LitElement {
   }
 }
 export const dynamicSlot = (renderSlot: boolean) => html`<test-dynamic-slot .renderSlot=${renderSlot}><p>Hi</p></test-dynamic-slot>`;
+
+@customElement('test-styles')
+export class TestStyles extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+    }
+  `;
+}
 
 // Tests to do:
 //  - simple template, no expressions

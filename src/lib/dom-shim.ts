@@ -42,7 +42,7 @@ type CustomElementRegistration = {
 };
 
 class CustomElementRegistry {
-  private __definitions = new Map<string, CustomElementRegistration>();
+  __definitions = new Map<string, CustomElementRegistration>();
 
   define(name: string, ctor: {new(): HTMLElement}) {
     this.__definitions.set(name, {

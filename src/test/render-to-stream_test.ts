@@ -192,3 +192,13 @@ test('dynamic slot, unrendered', async (t: tapelib.Test) => {
   // TODO: this is a bit wrong. See the comment in the "no slot" test
   t.equal(getResult(), `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
 });
+
+
+/* Styles */
+
+test('styles', async (t: tapelib.Test) => {
+  const {getScopedStyles} = await setup();
+  const styles = getScopedStyles() as string;
+  t.true(styles[0].includes('test-styles'));
+  t.false(styles[0].includes(':host'));
+});
