@@ -1,12 +1,11 @@
-import { renderNodePartToStream, getScopedStyles } from '../../lib/render-to-stream.js';
+import { render, getScopedStyles } from '../../lib/render.js';
 import {template} from './module.js';
-import { Writable } from 'stream';
 
-export const render = (data: any, stream: Writable) => {
+export async function* renderApp(data: any) {
 
-  getScopedStyles();
+  yield* getScopedStyles();
 
-  stream.write(`
+  yield `
     <!doctype html>
     <html>
       <head>
@@ -19,10 +18,10 @@ export const render = (data: any, stream: Writable) => {
       </head>
       <body>
         <button>Hydrate</button>
-        <div>`);
-      renderNodePartToStream(template(data.name, data.message), stream, new Set, {});
-  stream.write(`
+        <div>`;
+  yield* render(template(data.name, data.message), new Set, {});
+  yield `
         </div>
       </body>
-    </html>`);
+    </html>`;
 };

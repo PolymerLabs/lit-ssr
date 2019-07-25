@@ -14,7 +14,6 @@
 
 import { TemplateResult } from 'lit-html';
 import {marker} from 'lit-html/lib/template.js';
-import { Writable } from 'stream';
 
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
@@ -80,23 +79,23 @@ export const getScopedStyles = () => {
   return scopedStyles;
 }
 
-export const renderNodePartToStream = (value: unknown, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo) => {
+export async function* render(value: unknown, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo): AsyncIterableIterator<string> {
   if (value instanceof TemplateResult) {
-    stream.write(`<!--lit-part ${value.digest}-->`);
-    renderToStream(value, stream, claimedNodes, renderInfo);
+    yield `<!--lit-part ${value.digest}-->`;
+    yield* renderInternal(value, claimedNodes, renderInfo);
   } else {
-    stream.write(`<!--lit-part-->`);
+    yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
       // do nothing
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
-      stream.write(String(value));
+      yield String(value);
     }
   }
-  stream.write(`<!--/lit-part-->`);
+  yield `<!--/lit-part-->`;
 }
 
-export const renderToStream = (result: TemplateResult, stream: Writable, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}) => {
+export async function* renderInternal(result: TemplateResult, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}): AsyncIterableIterator<string> {
   const {slot} = renderInfo;
   let childPartIndex: number|undefined;
   // In order to render a TemplateResult we have to handle and stream out
@@ -129,18 +128,19 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
     if (lastOffset === undefined) {
       throw new Error('lastOffset is undefined');
     }
-    stream.write(html.substring(lastOffset, offset));
+    const previousLastOffset = lastOffset;
     lastOffset = offset;
+    return html.substring(previousLastOffset, offset);
   };
 
   const skipTo = (offset: number) => {
     lastOffset = offset;
   };
 
-  const handleNode = (node: DefaultTreeNode) => {
+  async function* handleNode(node: DefaultTreeNode) {
     if (isCommentNode(node)) {
       if (node.data === marker) {
-        flushTo(node.sourceCodeLocation!.startOffset);
+        yield flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
 
@@ -151,12 +151,12 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
           // TODO: we also want to render placeholder comments for the
           // distributed nodes
           if (value instanceof TemplateResult) {
-            stream.write(`<!--lit-part ${value.digest}--><!--/lit-part-->`);
+            yield `<!--lit-part ${value.digest}--><!--/lit-part-->`;
           } else {
-            stream.write(`<!--lit-part--><!--/lit-part-->`);
+            yield `<!--lit-part--><!--/lit-part-->`;
           }
         } else {
-          renderNodePartToStream(value, stream, claimedNodes, renderInfo);
+          yield* render(value, claimedNodes, renderInfo);
         }
       }
     } else if (isElement(node)) {
@@ -166,14 +166,14 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
 
       if (claimedNodes.has(node)) {
         // Skip the already distributed node
-        flushTo(node.sourceCodeLocation!.startOffset);
+        yield flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         // [1] TODO: write the distributed node placeholder comment
       } else {
         const tagName = node.tagName;
 
         if (tagName === 'slot') {
-          flushTo(node.sourceCodeLocation!.startTag.startOffset);
+          yield flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
           if (renderInfo.children === undefined || renderInfo.children.nodes.length === 0) {
             // render nothing? We need to get the distributed children here...
@@ -198,12 +198,12 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 // TODO: this renders the child value in this slot, but we need
                 // to render the part marker at the original location at [1]
                 if (childValue instanceof TemplateResult) {
-                  renderToStream(childValue, stream, claimedNodes, {slot: {slotName}});
+                  yield * renderInternal(childValue, claimedNodes, {slot: {slotName}});
                 } else {
                   if (childValue === null || childValue === undefined) {
                     // do nothing
                   } else {
-                    stream.write(String(childValue));
+                    yield String(childValue);
                   }
                 }
               } else {
@@ -211,7 +211,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
                 if (slotName === childSlotName) {
                   const startOffset = (child as any).sourceCodeLocation!.startOffset;
                   const endOffset = (child as any).sourceCodeLocation!.endOffset;
-                  stream.write(renderInfo.children.html.substring(startOffset, endOffset));
+                  yield renderInfo.children.html.substring(startOffset, endOffset);
                   claimedNodes.add(child);
                   // TODO: add an attribute for the placeholder comment id
                 }
@@ -224,7 +224,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
           const ctor = customElements.get(tagName);
           if (ctor !== undefined) {
             // Write the start tag
-            // flushTo(node.sourceCodeLocation!.startTag.endOffset);
+            // yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
             writeTag = true;
 
             // Instantiate the element and stream its render() result
@@ -245,7 +245,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             const attrEndOffset = attrSourceLocation.endOffset;
             const value = result.values[partIndex++];
 
-            stream.write(html.substring(lastOffset!, attrNameStartOffset));
+            yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
               const propertyName = attr.name.substring(1, attr.name.length - 5);
@@ -254,7 +254,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
               }
             } else {
               const attributeName = attr.name.substring(0, attr.name.length - 5);
-              stream.write(`${attributeName}="${value}"`);
+              yield `${attributeName}="${value}"`;
             }
             skipTo(attrEndOffset);
             // TODO: render marker comment for attribute binding?
@@ -262,7 +262,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         }
 
         if (writeTag) {
-          flushTo(node.sourceCodeLocation!.startTag.endOffset);
+          yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
         }
 
         if (instance !== undefined) {
@@ -271,7 +271,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
             html,
             result,
             partIndex};
-          renderNodePartToStream((instance as unknown as {render(): TemplateResult}).render(), stream, claimedNodes, {children: childInfo});
+          yield* render((instance as unknown as {render(): TemplateResult}).render(), claimedNodes, {children: childInfo});
           distributedIndex = childInfo.partIndex;
         }
 
@@ -292,20 +292,20 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
         if (nodeSlotName === slot.slotName) {
           skipTo(node.sourceCodeLocation!.startOffset);
           for (const child of depthFirst(node)) {
-            handleNode(child);
+            yield* handleNode(child);
           }
-          flushTo(node.sourceCodeLocation!.endOffset);
+          yield flushTo(node.sourceCodeLocation!.endOffset);
         } else {
           skipTo(node.sourceCodeLocation!.endOffset);
         }
       } else if (slot.slotName === undefined && isTextNode(node)) {
         for (const child of depthFirst(node)) {
-          handleNode(child);
+          yield* handleNode(child);
         }
       }
     } else {
       for (const child of depthFirst(node)) {
-        handleNode(child);
+        yield* handleNode(child);
       }
     }
   }
@@ -313,7 +313,7 @@ export const renderToStream = (result: TemplateResult, stream: Writable, claimed
     renderInfo.children.partIndex = childPartIndex;
   }
 
-  flushTo();
+  yield flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(`unexpected final partIndex: ${partIndex} !== ${result.values.length}`);
   }

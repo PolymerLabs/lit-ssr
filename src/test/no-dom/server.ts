@@ -16,9 +16,9 @@ import module from 'module';
 import {window} from '../../lib/dom-shim.js';
 import {importModule} from '../../lib/import-module.js';
 import * as koalib from 'koa';
-import {PassThrough} from 'stream';
 import { URL } from 'url';
 import * as path from 'path';
+import { AsyncIterableReader } from '../../lib/async-iterator-readable.js';
 
 const { createRequire } = module as any;
 const require = createRequire(import.meta.url);
@@ -43,12 +43,10 @@ new Koa()
       await next();
       return;
     }
-    const stream = new PassThrough();
+    const renderApp = (await appModule).namespace.renderApp;
+    const stream = new AsyncIterableReader(renderApp({name: 'SSR', message: 'This is a test.'}));
     ctx.type = 'text/html';
     ctx.body = stream;
-    const render = (await appModule).namespace.render;
-    render({name: 'SSR', message: 'This is a test.'}, stream);
-    stream.end();
   })
   .use(nodeResolve())
   .use(staticFiles(packageRoot))

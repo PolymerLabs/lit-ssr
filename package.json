@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node --experimental-modules --experimental-vm-modules ./test/no-dom/server.js",
-    "test": "node --experimental-modules --experimental-vm-modules ./test/render-to-stream_test.js"
+    "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js"
   },
   "author": "",
   "license": "ISC",
