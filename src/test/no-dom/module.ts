@@ -2,7 +2,11 @@ import {html} from 'lit-html';
 import {LitElement} from 'lit-element';
 
 export class MyElement extends LitElement {
-
+  render() {
+    return html`
+      <h2>I'm a my-element</h2>
+    `;
+  }
 }
 customElements.define('my-element', MyElement);
 
