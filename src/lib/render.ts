@@ -21,6 +21,8 @@ import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
 import { depthFirst, parseFragment, isCommentNode, isElement, getAttr, isTextNode } from './parse5-utils.js';
 import { LitElement, CSSResult } from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
+import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer.js';
+import { ChildRenderer } from './element-renderer.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -49,7 +51,7 @@ type ChildInfo = {
   partIndex: number;
 };
 type SlotInfo = {
-  slotName: string;
+  slotName: string|undefined;
 };
 type RenderInfo = {
   children?: ChildInfo;
@@ -79,10 +81,10 @@ export const getScopedStyles = () => {
   return scopedStyles;
 }
 
-export async function* render(value: unknown, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo): AsyncIterableIterator<string> {
+export async function* render(value: unknown, childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo): AsyncIterableIterator<string> {
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
-    yield* renderInternal(value, claimedNodes, renderInfo);
+    yield* renderInternal(value, childRenderer, new Set(), renderInfo);
   } else {
     yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
@@ -95,7 +97,8 @@ export async function* render(value: unknown, claimedNodes: Set<Node> = new Set(
   yield `<!--/lit-part-->`;
 }
 
-export async function* renderInternal(result: TemplateResult, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}): AsyncIterableIterator<string> {
+export async function* renderInternal(result: TemplateResult, childRenderer: ChildRenderer|undefined, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}): AsyncIterableIterator<string> {
+
   const {slot} = renderInfo;
   let childPartIndex: number|undefined;
   // In order to render a TemplateResult we have to handle and stream out
@@ -156,7 +159,7 @@ export async function* renderInternal(result: TemplateResult, claimedNodes: Set<
             yield `<!--lit-part--><!--/lit-part-->`;
           }
         } else {
-          yield* render(value, claimedNodes, renderInfo);
+          yield* render(value, childRenderer, renderInfo);
         }
       }
     } else if (isElement(node)) {
@@ -175,50 +178,11 @@ export async function* renderInternal(result: TemplateResult, claimedNodes: Set<
         if (tagName === 'slot') {
           yield flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
-          if (renderInfo.children === undefined || renderInfo.children.nodes.length === 0) {
-            // render nothing? We need to get the distributed children here...
-            const endTagEndOffset = node.sourceCodeLocation!.endTag.endOffset;
-            lastOffset = endTagEndOffset;
-          } else {
-            childPartIndex = renderInfo.children.partIndex;
-            for (const child of renderInfo.children.nodes) {
-              // All these children are from the same template
-              // While rendering nested templates, we may create children from
-              // other templates, so we can't render them by slicing the current
-              // html string. We'll have to evaluate the sub templates and stream
-              // them here...
-              if (isCommentNode(child) && (child.data === marker)) {
-                // TODO: render sub-template, pull in slotted chlidren here
-                // What do we need to do to render children from another templates?
-                //  - increment the partIndex from where the child marker node came from
-                //  - get the TemplateResult value
-                //  - render the template
-                //  - iterate through the rendered result...
-                const childValue = renderInfo.children.result.values[childPartIndex++];
-                // TODO: this renders the child value in this slot, but we need
-                // to render the part marker at the original location at [1]
-                if (childValue instanceof TemplateResult) {
-                  yield * renderInternal(childValue, claimedNodes, {slot: {slotName}});
-                } else {
-                  if (childValue === null || childValue === undefined) {
-                    // do nothing
-                  } else {
-                    yield String(childValue);
-                  }
-                }
-              } else {
-                const childSlotName = getAttr(child, 'slot');
-                if (slotName === childSlotName) {
-                  const startOffset = (child as any).sourceCodeLocation!.startOffset;
-                  const endOffset = (child as any).sourceCodeLocation!.endOffset;
-                  yield renderInfo.children.html.substring(startOffset, endOffset);
-                  claimedNodes.add(child);
-                  // TODO: add an attribute for the placeholder comment id
-                }
-              }
-            }
-            // renderInfo.children.partIndex = childPartIndex;
+
+          if (childRenderer !== undefined) {
+            yield* childRenderer.renderChildren(slotName);
           }
+
           skipTo(node.sourceCodeLocation!.endOffset);
         } else if (tagName.indexOf('-') !== -1) {
           const ctor = customElements.get(tagName);
@@ -266,15 +230,17 @@ export async function* renderInternal(result: TemplateResult, claimedNodes: Set<
         }
 
         if (instance !== undefined) {
-          const childInfo = {
-            nodes: node.childNodes,
+          const childRenderer = new LitHtmlChildRenderer(
+            node.childNodes,
             html,
             result,
-            partIndex};
-          yield* render((instance as unknown as {render(): TemplateResult}).render(), claimedNodes, {children: childInfo});
-          distributedIndex = childInfo.partIndex;
+            partIndex,
+            claimedNodes);
+          // TODO: look up a renderer instead of creating one
+          const renderer = new LitElementRenderer();
+          yield* renderer.renderElement(instance as LitElement, childRenderer);
+          distributedIndex = childRenderer.renderedPartIndex;
         }
-
       }
     }
   }
