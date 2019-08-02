@@ -29,7 +29,7 @@ export class LitElementRenderer implements ElementRenderer {
 
   async * renderElement(instance: LitElement, childRenderer: ChildRenderer): AsyncIterableIterator<string> {
     const renderResult = (instance as unknown as {render(): TemplateResult}).render();
-    yield* render(renderResult, childRenderer, {});
+    yield* render(renderResult, childRenderer);
   }
 
   async * renderStyles(_elementClass: Constructor<HTMLElement>): AsyncIterator<string> {

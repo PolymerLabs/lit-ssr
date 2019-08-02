@@ -39,22 +39,10 @@ const getTemplate = (result: TemplateResult) => {
   return {html, ast};
 };
 
-// Idea: make this a class that's responsible for rendering a template value - a
-// specific TemplateResult *reference*. Passing an instance of this class down
-// will allow distribution slots to defer rendering and communicate what's been
-// distributed so that when this instance continues to render it already knows
-// what to skip. Fold claimedNodes into here.
-type ChildInfo = {
-  nodes: DefaultTreeNode[];
-  html: string;
-  result: TemplateResult;
-  partIndex: number;
-};
 type SlotInfo = {
   slotName: string|undefined;
 };
 type RenderInfo = {
-  children?: ChildInfo;
   slot?: SlotInfo;
 }
 
@@ -81,10 +69,10 @@ export const getScopedStyles = () => {
   return scopedStyles;
 }
 
-export async function* render(value: unknown, childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo): AsyncIterableIterator<string> {
+export async function* render(value: unknown, childRenderer?: ChildRenderer|undefined): AsyncIterableIterator<string> {
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
-    yield* renderInternal(value, childRenderer, new Set(), renderInfo);
+    yield* renderInternal(value, childRenderer, new Set(), {});
   } else {
     yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
@@ -100,7 +88,7 @@ export async function* render(value: unknown, childRenderer: ChildRenderer|undef
 export async function* renderInternal(result: TemplateResult, childRenderer: ChildRenderer|undefined, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}): AsyncIterableIterator<string> {
 
   const {slot} = renderInfo;
-  let childPartIndex: number|undefined;
+
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -159,7 +147,7 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
             yield `<!--lit-part--><!--/lit-part-->`;
           }
         } else {
-          yield* render(value, childRenderer, renderInfo);
+          yield* render(value, childRenderer);
         }
       }
     } else if (isElement(node)) {
@@ -274,9 +262,6 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
         yield* handleNode(child);
       }
     }
-  }
-  if (renderInfo.children !== undefined && childPartIndex !== undefined) {
-    renderInfo.children.partIndex = childPartIndex;
   }
 
   yield flushTo();
