@@ -106,6 +106,26 @@ test('attribute expression with multiple bindings', async (t: tapelib.Test) => {
   t.equal(result, `<!--lit-part D+PQMst9obo=--><div test="a foo b bar c" __lit-attr="1"></div><!--/lit-part-->`);
 });
 
+/* Reflected property Expressions */
+
+test('HTMLInputElement.value', async (t: tapelib.Test) => {
+  const {render, inputTemplateWithValueProperty} = await setup();
+  const result = await render(inputTemplateWithValueProperty('foo'));
+  t.equal(result, `<!--lit-part AxWziS+Adpk=--><input value="foo" __lit-attr="1"><!--/lit-part-->`);
+});
+
+test('HTMLElement.className', async (t: tapelib.Test) => {
+  const {render, elementTemplateWithClassNameProperty} = await setup();
+  const result = await render(elementTemplateWithClassNameProperty('foo'));
+  t.equal(result, `<!--lit-part I7NxrdZ/Zxo=--><div class="foo" __lit-attr="1"></div><!--/lit-part-->`);
+});
+
+test('HTMLElement.id', async (t: tapelib.Test) => {
+  const {render, elementTemplateWithIDProperty} = await setup();
+  const result = await render(elementTemplateWithIDProperty('foo'));
+  t.equal(result, `<!--lit-part IgnmhhM3LsA=--><div id="foo" __lit-attr="1"></div><!--/lit-part-->`);
+});
+
 /* Nested Templates */
 
 test('nested template', async (t: tapelib.Test) => {

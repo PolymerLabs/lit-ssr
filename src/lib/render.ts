@@ -25,6 +25,7 @@ import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer
 import { ChildRenderer } from './element-renderer.js';
 import { isRepeatDirective, RepeatPreRenderer } from './directives/repeat.js';
 import { isClassMapDirective, ClassMapPreRenderer } from './directives/class-map.js';
+import { reflectedAttributeName } from './reflected-attributes.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -210,6 +211,11 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
               const propertyName = attr.name.substring(1, attr.name.length - 5);
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
+              }
+              // Property should be reflected to attribute
+              let reflectedName = reflectedAttributeName(tagName, propertyName);
+              if (reflectedName !== undefined) {
+                yield `${reflectedName}="${value}"`;
               }
             } else {
               const attributeName = attr.name.substring(0, attr.name.length - 5);
