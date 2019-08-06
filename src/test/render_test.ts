@@ -206,3 +206,27 @@ test('styles', async (t: tapelib.Test) => {
   t.true(styles[0].includes('test-styles'));
   t.false(styles[0].includes(':host'));
 });
+
+/* Directives */
+
+test.only('simple repeat directive', async (t: tapelib.Test) => {
+  const {render, repeatDirective} = await setup();
+  const result = await render(repeatDirective);
+  t.equal(result,
+    '<!--lit-part AEmR7W+R0Ak=-->' +
+      '<div>' +
+        '<!--lit-part-->' + // part that wraps the directive
+          '<!--lit-part AgkKByTWdnw=-->' + // part for child template 0
+            '<p><!--lit-part-->0<!--/lit-part-->) <!--lit-part-->foo<!--/lit-part--></p>' +
+          '<!--/lit-part-->' +
+          '<!--lit-part AgkKByTWdnw=-->' + // part for child template 1
+            '<p><!--lit-part-->1<!--/lit-part-->) <!--lit-part-->bar<!--/lit-part--></p>' +
+          '<!--/lit-part-->' +
+          '<!--lit-part AgkKByTWdnw=-->' + // part for child template 2
+            '<p><!--lit-part-->2<!--/lit-part-->) <!--lit-part-->qux<!--/lit-part--></p>' +
+          '<!--/lit-part-->' +
+        '<!--/lit-part-->' +
+      '</div>' +
+    '<!--/lit-part-->'
+  );
+});
