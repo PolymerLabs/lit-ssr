@@ -23,7 +23,7 @@ import { LitElement, CSSResult } from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer.js';
 import { ChildRenderer } from './element-renderer.js';
-import { Directive, doRepeat } from './directives/repeat.js';
+import { directives } from './directives/repeat.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -78,9 +78,9 @@ export async function* render(value: unknown, childRenderer?: ChildRenderer|unde
     yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
       // do nothing
-    } else if ((value as any).directive === Directive.repeat) {
-      // CONTINUE: add directive handling here.
-      yield* doRepeat((value as any).data.items, (value as any).data.template, childRenderer);
+    } else if (directives.has(value as object)) {
+      yield* (value as any)(childRenderer);
+      // yield* doRepeat((value as any).data.items, (value as any).data.template, childRenderer, renderInfo);
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
       yield String(value);
