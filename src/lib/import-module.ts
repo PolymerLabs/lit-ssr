@@ -11,19 +11,16 @@ const readFile = promisify(fs.readFile);
 type PackageJSON = {main?: string, module?: string, 'jsnext:main'?: string};
 
 const resolveSpecifier = (specifier: string, referrer: string): URL => {
-  console.log("resolving specifier:", specifier, ", via:", referrer);
   let moduleURL! : URL;
   try {
     moduleURL = new URL(specifier);
   } catch (e) {
-    // matches local paths 
     if (specifier.match(/^(\.){0,2}\//) !== null) {
       moduleURL = new URL(specifier, referrer);
+    } else if (specifier.match(/lit-html\/directives\/repeat$/)) {
+      // Swap directives when requested.
+      return new URL(`file:${path.resolve('lib/directives/repeat.js')}`);
     } else {
-      // swap directives when seen
-      if (specifier === 'lit-html/directives/repeat') {
-        specifier = '../../lib/directives/repeat.js';
-      }
       const referencingModulePath = new URL(referrer).pathname;
       const modulePath = resolve.sync(specifier, {
         basedir: path.dirname(referencingModulePath),
