@@ -35,8 +35,6 @@ const staticFiles = require('koa-static');
 const { nodeResolve } = require('koa-node-resolve');
 
 (window as any).require = require;
-// move into server for HMR
-const appModule = importModule('./app-server.js', import.meta.url, window);
 
 const port = 8080;
 new Koa()
@@ -46,6 +44,7 @@ new Koa()
       await next();
       return;
     }
+    const appModule = importModule('./app-server.js', import.meta.url, window);
     const renderApp = (await appModule).namespace.renderApp;
     const stream = new AsyncIterableReader(renderApp({name: 'SSR', message: 'This is a test.', items: ['foo', 'bar', 'qux']}));
     ctx.type = 'text/html';
