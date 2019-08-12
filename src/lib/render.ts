@@ -190,6 +190,7 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
 
         // Handle attributes
 
+        let boundAttrsCount = 0;
         for (const attr of node.attrs) {
           if (attr.name.endsWith('$lit$')) {
             const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
@@ -209,8 +210,12 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
               yield `${attributeName}="${value}"`;
             }
             skipTo(attrEndOffset);
-            // TODO: render marker comment for attribute binding?
+            boundAttrsCount += 1;
           }
+        }
+        if (boundAttrsCount > 0) {
+          // TODO: Can we add the leading space a different way?
+          yield ` __lit-attr="${boundAttrsCount}"`;
         }
 
         if (writeTag) {
