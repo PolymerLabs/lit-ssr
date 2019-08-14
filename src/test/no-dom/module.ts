@@ -1,6 +1,6 @@
 import {html} from 'lit-html';
 import {LitElement} from 'lit-element';
-import {repeat} from 'lit-html/directives/repeat';
+import {repeat} from 'lit-html/directives/repeat.js';
 
 export class MyElement extends LitElement {
   render() {
