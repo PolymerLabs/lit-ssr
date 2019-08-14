@@ -209,7 +209,7 @@ test('styles', async (t: tapelib.Test) => {
 
 /* Directives */
 
-test.only('simple repeat directive', async (t: tapelib.Test) => {
+test('simple repeat directive', async (t: tapelib.Test) => {
   const {render, repeatDirective} = await setup();
   const result = await render(repeatDirective);
   t.equal(result,

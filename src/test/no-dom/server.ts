@@ -40,7 +40,6 @@ const port = 8080;
 new Koa()
   .use(async (ctx: koalib.Context, next: Function) => {
     if (ctx.URL.pathname !== '/') {
-      console.log('from client:', ctx.URL.pathname);
       await next();
       return;
     }
