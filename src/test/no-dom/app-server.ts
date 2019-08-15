@@ -19,7 +19,7 @@ export async function* renderApp(data: any) {
       <body>
         <button>Hydrate</button>
         <div>`;
-  yield* render(template(data.name, data.message));
+  yield* render(template(data.name, data.message, data.items));
   yield `
         </div>
       </body>

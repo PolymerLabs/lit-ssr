@@ -13,6 +13,7 @@
  */
 
 import {html, nothing} from 'lit-html';
+import {repeat} from '../lib/directives/repeat.js'
 import {LitElement, css, property, customElement} from 'lit-element';
 
 export {render, renderInternal, getScopedStyles} from '../lib/render.js';
@@ -128,6 +129,12 @@ export class TestStyles extends LitElement {
     }
   `;
 }
+
+
+/* Directives */
+
+export const repeatDirective = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
+// export const topLevelRepeatDirective
 
 // Tests to do:
 //  - simple template, no expressions
