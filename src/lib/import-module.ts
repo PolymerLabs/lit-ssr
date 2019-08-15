@@ -20,6 +20,8 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
     } else if (specifier.match(/lit-html\/directives\/repeat\.js$/)) {
       // Swap directives when requested.
       return new URL(`file:${path.resolve('lib/directives/repeat.js')}`);
+    } else if (specifier.match(/lit-html\/directives\/class-map\.js$/)) {
+      return new URL(`file:${path.resolve('lib/directives/class-map.js')}`);
     } else {
       const referencingModulePath = new URL(referrer).pathname;
       const modulePath = resolve.sync(specifier, {

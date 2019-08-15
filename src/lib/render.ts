@@ -24,6 +24,7 @@ import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer.js';
 import { ChildRenderer } from './element-renderer.js';
 import { isRepeatDirective, RepeatPreRenderer } from './directives/repeat.js';
+import { isClassMapDirective, ClassMapPreRenderer } from './directives/class-map.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -215,7 +216,12 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
               // bindings. Replace the markers with their resolved values.
               const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
               yield attr.value.replace(globalMarkerRegex, () => {
-                return String(result.values[partIndex++]);
+                let value = result.values[partIndex++];
+                if (isClassMapDirective(value)) {
+                  return (value as ClassMapPreRenderer)();
+                } else {
+                  return String(value);
+                }
               });
               yield '"';
             }
