@@ -13,7 +13,7 @@
  */
 
 import { TemplateResult } from 'lit-html';
-import {marker} from 'lit-html/lib/template.js';
+import {marker, markerRegex} from 'lit-html/lib/template.js';
 
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
@@ -199,18 +199,25 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
             const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
-            const value = result.values[partIndex++];
 
             yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
+              const value = result.values[partIndex++];
               const propertyName = attr.name.substring(1, attr.name.length - 5);
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
               }
             } else {
               const attributeName = attr.name.substring(0, attr.name.length - 5);
-              yield `${attributeName}="${value}"`;
+              yield `${attributeName}="`;
+              // attr.value has the raw attribute value, which may contain multiple
+              // bindings. Replace the markers with their resolved values.
+              const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
+              yield attr.value.replace(globalMarkerRegex, () => {
+                return String(result.values[partIndex++]);
+              });
+              yield '"';
             }
             skipTo(attrEndOffset);
             boundAttrsCount += 1;

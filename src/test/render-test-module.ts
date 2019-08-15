@@ -45,6 +45,8 @@ export const templateWithTextExpression = (x: any) => html`<div>${x}</div>`;
 
 export const templateWithAttributeExpression = (x: any) => html`<div class=${x}></div>`;
 export const templateWithMultipleAttributeExpressions = (x: any, y: any) => html`<div x=${x} y=${y} z="not-dynamic"></div>`
+export const templateWithMultiBindingAttributeExpression = (x: string, y: string) => html`<div test="a ${x} b ${y} c"></div>`;
+
 
 /* Nested Templates */
 
