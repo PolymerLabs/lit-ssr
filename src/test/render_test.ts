@@ -90,8 +90,16 @@ test('attribute expression with string value', async (t: tapelib.Test) => {
   const {render, templateWithAttributeExpression} = await setup();
   const result = await render(templateWithAttributeExpression('foo'));
   // TODO: test for the marker comment for attribute binding
-  t.equal(result, `<!--lit-part FAR9hgjJqTI=--><div class="foo"></div><!--/lit-part-->`);
+  t.equal(result, `<!--lit-part FAR9hgjJqTI=--><div class="foo" __lit-attr="1"></div><!--/lit-part-->`);
 });
+
+test('multiple attribute expressions with string value', async (t: tapelib.Test) => {
+  const {render, templateWithMultipleAttributeExpressions} = await setup();
+  const result = await render(templateWithMultipleAttributeExpressions('foo', 'bar'));
+  // Has marker attribute for number of bound attributes.
+  t.equal(result, `<!--lit-part FQlA2/EioQk=--><div x="foo" y="bar" __lit-attr="2" z="not-dynamic"></div><!--/lit-part-->`);
+});
+
 
 
 /* Nested Templates */
@@ -114,8 +122,8 @@ test('simple custom element', async (t: tapelib.Test) => {
 test('element with property', async (t: tapelib.Test) => {
   const {render, elementWithProperty} = await setup();
   const result = await render(elementWithProperty);
-  // TODO: we'd like to remove the space in the start tag
-  t.equal(result, `<!--lit-part v2CxGIW+qHI=--><test-property ><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></test-property><!--/lit-part-->`);
+  // TODO: we'd like to remove the extra space in the start tag
+  t.equal(result, `<!--lit-part v2CxGIW+qHI=--><test-property  __lit-attr="1"><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></test-property><!--/lit-part-->`);
 });
 
 
@@ -187,14 +195,14 @@ test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
 test('dynamic slot', async (t: tapelib.Test) => {
   const {render, dynamicSlot} = await setup();
   const result = await render(dynamicSlot(true));
-  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
+  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
 });
 
 test('dynamic slot, unrendered', async (t: tapelib.Test) => {
   const {render, dynamicSlot} = await setup();
   const result = await render(dynamicSlot(false));
   // TODO: this is a bit wrong. See the comment in the "no slot" test
-  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
+  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
 });
 
 
