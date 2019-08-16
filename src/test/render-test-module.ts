@@ -13,7 +13,8 @@
  */
 
 import {html, nothing} from 'lit-html';
-import {repeat} from '../lib/directives/repeat.js'
+import {repeat} from '../lib/directives/repeat.js';
+import {classMap} from '../lib/directives/class-map.js';
 import {LitElement, css, property, customElement} from 'lit-element';
 
 export {render, renderInternal, getScopedStyles} from '../lib/render.js';
@@ -45,6 +46,8 @@ export const templateWithTextExpression = (x: any) => html`<div>${x}</div>`;
 
 export const templateWithAttributeExpression = (x: any) => html`<div class=${x}></div>`;
 export const templateWithMultipleAttributeExpressions = (x: any, y: any) => html`<div x=${x} y=${y} z="not-dynamic"></div>`
+export const templateWithMultiBindingAttributeExpression = (x: string, y: string) => html`<div test="a ${x} b ${y} c"></div>`;
+
 
 /* Nested Templates */
 
@@ -134,7 +137,10 @@ export class TestStyles extends LitElement {
 /* Directives */
 
 export const repeatDirective = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
-// export const topLevelRepeatDirective
+
+export const classMapDirective = html`<div class="${classMap({a: true, b: false, c: true})}"></div>`;
+
+export const classMapDirectiveMultiBinding = html`<div class="z ${'hi'} ${classMap({a: true, b: false, c: true})}"></div>`;
 
 // Tests to do:
 //  - simple template, no expressions

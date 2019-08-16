@@ -100,7 +100,11 @@ test('multiple attribute expressions with string value', async (t: tapelib.Test)
   t.equal(result, `<!--lit-part FQlA2/EioQk=--><div x="foo" y="bar" __lit-attr="2" z="not-dynamic"></div><!--/lit-part-->`);
 });
 
-
+test('attribute expression with multiple bindings', async (t: tapelib.Test) => {
+  const {render, templateWithMultiBindingAttributeExpression} = await setup();
+  const result = await render(templateWithMultiBindingAttributeExpression('foo', 'bar'));
+  t.equal(result, `<!--lit-part D+PQMst9obo=--><div test="a foo b bar c" __lit-attr="1"></div><!--/lit-part-->`);
+});
 
 /* Nested Templates */
 
@@ -237,4 +241,16 @@ test('simple repeat directive', async (t: tapelib.Test) => {
       '</div>' +
     '<!--/lit-part-->'
   );
+});
+
+test('simple class-map directive', async (t: tapelib.Test) => {
+  const {render, classMapDirective} = await setup();
+  const result = await render(classMapDirective);
+  t.equal(result, '<!--lit-part PkF/hiJU4II=--><div class="a c" __lit-attr="1"></div><!--/lit-part-->');
+});
+
+test('class-map directive with other bindings', async (t: tapelib.Test) => {
+  const {render, classMapDirectiveMultiBinding} = await setup();
+  const result = await render(classMapDirectiveMultiBinding);
+  t.equal(result, '<!--lit-part pNgepkKFbd0=--><div class="z hi a c" __lit-attr="1"></div><!--/lit-part-->');
 });

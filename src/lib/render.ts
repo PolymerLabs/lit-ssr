@@ -13,7 +13,7 @@
  */
 
 import { TemplateResult } from 'lit-html';
-import {marker} from 'lit-html/lib/template.js';
+import {marker, markerRegex} from 'lit-html/lib/template.js';
 
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
@@ -24,6 +24,7 @@ import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer.js';
 import { ChildRenderer } from './element-renderer.js';
 import { isRepeatDirective, RepeatPreRenderer } from './directives/repeat.js';
+import { isClassMapDirective, ClassMapPreRenderer } from './directives/class-map.js';
 
 const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
 
@@ -39,6 +40,8 @@ const getTemplate = (result: TemplateResult) => {
   templateCache.set(result.strings, {html, ast});
   return {html, ast};
 };
+
+const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
 type SlotInfo = {
   slotName: string|undefined;
@@ -199,18 +202,29 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
             const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
-            const value = result.values[partIndex++];
 
             yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
+              const value = result.values[partIndex++];
               const propertyName = attr.name.substring(1, attr.name.length - 5);
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
               }
             } else {
               const attributeName = attr.name.substring(0, attr.name.length - 5);
-              yield `${attributeName}="${value}"`;
+              let attributeString = `${attributeName}="`;
+              // attr.value has the raw attribute value, which may contain multiple
+              // bindings. Replace the markers with their resolved values.
+              attributeString += attr.value.replace(globalMarkerRegex, () => {
+                const value = result.values[partIndex++];
+                if (isClassMapDirective(value)) {
+                  return (value as ClassMapPreRenderer)();
+                } else {
+                  return String(value);
+                }
+              });
+              yield attributeString + '"';
             }
             skipTo(attrEndOffset);
             boundAttrsCount += 1;
