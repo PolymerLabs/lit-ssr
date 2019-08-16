@@ -21,7 +21,9 @@ export const classMap = (classInfo: ClassInfo): ClassMapPreRenderer => {
    * Returns a string of class names whose values in classInfo are truthy.
    */
   const doClassMap = function(): string {
-    return Object.keys(classInfo).filter(name => classInfo[name]).join(' ');
+    // We explicitly want a loose truthy check here to match the lit-html
+    // classMap implementation.
+    return Object.keys(classInfo).filter((name) => classInfo[name]).join(' ');
   }
   directives.set(doClassMap, true);
   return doClassMap;

@@ -41,6 +41,8 @@ const getTemplate = (result: TemplateResult) => {
   return {html, ast};
 };
 
+const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
+
 type SlotInfo = {
   slotName: string|undefined;
 };
@@ -211,19 +213,18 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
               }
             } else {
               const attributeName = attr.name.substring(0, attr.name.length - 5);
-              yield `${attributeName}="`;
+              let attributeString = `${attributeName}="`;
               // attr.value has the raw attribute value, which may contain multiple
               // bindings. Replace the markers with their resolved values.
-              const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
-              yield attr.value.replace(globalMarkerRegex, () => {
-                let value = result.values[partIndex++];
+              attributeString += attr.value.replace(globalMarkerRegex, () => {
+                const value = result.values[partIndex++];
                 if (isClassMapDirective(value)) {
                   return (value as ClassMapPreRenderer)();
                 } else {
                   return String(value);
                 }
               });
-              yield '"';
+              yield attributeString + '"';
             }
             skipTo(attrEndOffset);
             boundAttrsCount += 1;
