@@ -15,9 +15,7 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
   try {
     moduleURL = new URL(specifier);
   } catch (e) {
-    if (specifier.match(/^(\.){0,2}\//) !== null) {
-      moduleURL = new URL(specifier, referrer);
-    } else if (specifier.match(/lit-html\/directives\/repeat\.js$/)) {
+    if (specifier.match(/lit-html\/directives\/repeat\.js$/)) {
       // Swap directives when requested.
       return new URL(`file:${path.resolve('lib/directives/repeat.js')}`);
     } else if (specifier.match(/lit-html\/directives\/class-map\.js$/)) {

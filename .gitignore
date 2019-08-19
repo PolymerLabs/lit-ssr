@@ -4,3 +4,4 @@ node_modules/
 /test/**/*.js.map
 /test/**/*.d.ts
 /test/**/*.d.ts.map
+/test/benchmark/build.html
