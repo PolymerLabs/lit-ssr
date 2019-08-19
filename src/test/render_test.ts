@@ -221,9 +221,9 @@ test('styles', async (t: tapelib.Test) => {
 
 /* Directives */
 
-test('simple repeat directive', async (t: tapelib.Test) => {
-  const {render, repeatDirective} = await setup();
-  const result = await render(repeatDirective);
+test('repeat directive with a template result', async (t: tapelib.Test) => {
+  const {render, repeatDirectiveWithTemplateResult} = await setup();
+  const result = await render(repeatDirectiveWithTemplateResult);
   t.equal(result,
     '<!--lit-part AEmR7W+R0Ak=-->' +
       '<div>' +
@@ -239,6 +239,26 @@ test('simple repeat directive', async (t: tapelib.Test) => {
           '<!--/lit-part-->' +
         '<!--/lit-part-->' +
       '</div>' +
+    '<!--/lit-part-->'
+  );
+});
+
+test('repeat directive with a string', async (t: tapelib.Test) => {
+  const {render, repeatDirectiveWithString} = await setup();
+  const result = await render(repeatDirectiveWithString);
+  t.equal(result,
+    '<!--lit-part BRUAAAUVAAA=-->' +
+      '<!--lit-part-->' + // part that wraps the directive
+        '<!--lit-part-->' + // part for child template 0
+          'foo' +
+        '<!--/lit-part-->' +
+        '<!--lit-part-->' + // part for child template 1
+          'bar' +
+        '<!--/lit-part-->' +
+        '<!--lit-part-->' + // part for child template 2
+          'qux' +
+        '<!--/lit-part-->' +
+      '<!--/lit-part-->' +
     '<!--/lit-part-->'
   );
 });

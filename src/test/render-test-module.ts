@@ -136,7 +136,9 @@ export class TestStyles extends LitElement {
 
 /* Directives */
 
-export const repeatDirective = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
+export const repeatDirectiveWithTemplateResult = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
+
+export const repeatDirectiveWithString = html`${repeat(['foo', 'bar', 'qux'], (name: string) => name)}`;
 
 export const classMapDirective = html`<div class="${classMap({a: true, b: false, c: true})}"></div>`;
 
