@@ -12,8 +12,8 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import { TemplateResult } from 'lit-html';
-import {marker, markerRegex} from 'lit-html/lib/template.js';
+import { TemplateResult, nothing } from 'lit-html';
+import {marker, markerRegex, lastAttributeNameRegex} from 'lit-html/lib/template.js';
 
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
@@ -84,6 +84,8 @@ export async function* render(value: unknown, childRenderer?: ChildRenderer|unde
       // do nothing
     } else if (isRepeatDirective(value)) {
       yield* (value as RepeatPreRenderer)(childRenderer);
+    } else if (value === nothing) {
+      // yield nothing
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
       yield String(value);
@@ -207,8 +209,8 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
             yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
+              const propertyName = lastAttributeNameRegex.exec(result.strings[partIndex])![2].slice(1);
               const value = result.values[partIndex++];
-              const propertyName = attr.name.substring(1, attr.name.length - 5);
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
               }

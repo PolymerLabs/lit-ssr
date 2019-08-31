@@ -52,6 +52,7 @@ export const templateWithMultiBindingAttributeExpression = (x: string, y: string
 
 export const inputTemplateWithValueProperty = (x: any) => html`<input .value=${x}>`;
 export const elementTemplateWithClassNameProperty = (x: any) => html`<div .className=${x}></div>`;
+export const elementTemplateWithClassnameProperty = (x: any) => html`<div .classname=${x}></div>`;
 export const elementTemplateWithIDProperty = (x: any) => html`<div .id=${x}></div>`;
 
 /* Nested Templates */

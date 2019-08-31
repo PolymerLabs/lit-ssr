@@ -26,7 +26,7 @@
  */
 const reflectedAttributesSource: (string|string[])[][] = [
   [['input', 'select'], 'value'],
-  ['*', ['classname', 'class'], 'id']
+  ['*', ['className', 'class'], 'id']
 ];
 
 /**
