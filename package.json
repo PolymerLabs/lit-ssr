@@ -1,13 +1,13 @@
 {
   "name": "ssr-modules",
   "type": "module",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "build": "tsc",
     "start": "node --experimental-modules --experimental-vm-modules ./test/no-dom/server.js",
-    "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js"
+    "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js | tap-spec"
   },
   "author": "",
   "license": "ISC",
@@ -18,6 +18,7 @@
     "@types/resolve": "0.0.8",
     "chai": "^4.2.0",
     "lit-html": "^1.0.0",
+    "tap-spec": "^5.0.0",
     "tape-promise": "^4.0.0",
     "typescript": "^3.4.5"
   },
