@@ -20,7 +20,7 @@
     "lit-html": "^1.0.0",
     "tap-spec": "^5.0.0",
     "tape-promise": "^4.0.0",
-    "typescript": "^3.4.5"
+    "typescript": "^3.7.2"
   },
   "dependencies": {
     "@types/koa": "^2.0.49",
