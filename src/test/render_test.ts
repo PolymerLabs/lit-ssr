@@ -106,6 +106,32 @@ test('attribute expression with multiple bindings', async (t: tapelib.Test) => {
   t.equal(result, `<!--lit-part D+PQMst9obo=--><div test="a foo b bar c" __lit-attr="1"></div><!--/lit-part-->`);
 });
 
+/* Reflected property Expressions */
+
+test('HTMLInputElement.value', async (t: tapelib.Test) => {
+  const {render, inputTemplateWithValueProperty} = await setup();
+  const result = await render(inputTemplateWithValueProperty('foo'));
+  t.equal(result, `<!--lit-part AxWziS+Adpk=--><input value="foo" __lit-attr="1"><!--/lit-part-->`);
+});
+
+test('HTMLElement.className', async (t: tapelib.Test) => {
+  const {render, elementTemplateWithClassNameProperty} = await setup();
+  const result = await render(elementTemplateWithClassNameProperty('foo'));
+  t.equal(result, `<!--lit-part I7NxrdZ/Zxo=--><div class="foo" __lit-attr="1"></div><!--/lit-part-->`);
+});
+
+test('HTMLElement.classname does not reflect', async (t: tapelib.Test) => {
+  const {render, elementTemplateWithClassnameProperty} = await setup();
+  const result = await render(elementTemplateWithClassnameProperty('foo'));
+  t.equal(result, `<!--lit-part I7NxrbZzZGA=--><div  __lit-attr="1"></div><!--/lit-part-->`);
+});
+
+test('HTMLElement.id', async (t: tapelib.Test) => {
+  const {render, elementTemplateWithIDProperty} = await setup();
+  const result = await render(elementTemplateWithIDProperty('foo'));
+  t.equal(result, `<!--lit-part IgnmhhM3LsA=--><div id="foo" __lit-attr="1"></div><!--/lit-part-->`);
+});
+
 /* Nested Templates */
 
 test('nested template', async (t: tapelib.Test) => {
@@ -206,7 +232,8 @@ test('dynamic slot, unrendered', async (t: tapelib.Test) => {
   const {render, dynamicSlot} = await setup();
   const result = await render(dynamicSlot(false));
   // TODO: this is a bit wrong. See the comment in the "no slot" test
-  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`);
+  // (<p>Hi</p> should be hidden somehow)
+  t.equal(result, `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part--><!--/lit-part--><!--/lit-part--><p>Hi</p></test-dynamic-slot><!--/lit-part-->`);
 });
 
 

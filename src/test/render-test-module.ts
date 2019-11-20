@@ -48,6 +48,12 @@ export const templateWithAttributeExpression = (x: any) => html`<div class=${x}>
 export const templateWithMultipleAttributeExpressions = (x: any, y: any) => html`<div x=${x} y=${y} z="not-dynamic"></div>`
 export const templateWithMultiBindingAttributeExpression = (x: string, y: string) => html`<div test="a ${x} b ${y} c"></div>`;
 
+/* Reflected Property Expressions */
+
+export const inputTemplateWithValueProperty = (x: any) => html`<input .value=${x}>`;
+export const elementTemplateWithClassNameProperty = (x: any) => html`<div .className=${x}></div>`;
+export const elementTemplateWithClassnameProperty = (x: any) => html`<div .classname=${x}></div>`;
+export const elementTemplateWithIDProperty = (x: any) => html`<div .id=${x}></div>`;
 
 /* Nested Templates */
 

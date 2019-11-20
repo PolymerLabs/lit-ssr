@@ -65,7 +65,7 @@ export function insertNode(
   if (!parent.childNodes) {
     parent.childNodes = [];
   }
-  let newNodes = [];
+  let newNodes: any[] = [];
   let removedNode = replace ? parent.childNodes[index] : null;
   if (newNode) {
     if (isDocumentFragment(newNode)) {
