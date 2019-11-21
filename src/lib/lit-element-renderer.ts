@@ -14,7 +14,7 @@
 
 import { ElementRenderer, ChildRenderer } from './element-renderer.js';
 import { LitElement, TemplateResult, CSSResult } from 'lit-element';
-import {render, renderInternal} from './render.js';
+import {render, renderInternal, RenderInfo} from './render.js';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import { Node, DefaultTreeNode } from 'parse5';
 import { isCommentNode, getAttr } from './parse5-utils.js';
@@ -27,9 +27,15 @@ export type Constructor<T> = {new(): T};
  */
 export class LitElementRenderer implements ElementRenderer {
 
-  async * renderElement(instance: LitElement, childRenderer: ChildRenderer): AsyncIterableIterator<string> {
+  async * renderElement(instance: LitElement, childRenderer: ChildRenderer, renderInfo: RenderInfo): AsyncIterableIterator<string> {
     const renderResult = (instance as unknown as {render(): TemplateResult}).render();
-    yield* render(renderResult, childRenderer);
+    if (renderInfo.flattened) {
+      yield* render(renderResult, childRenderer, renderInfo.flattened);
+    } else {
+      yield '<shadow-root>';
+      yield* render(renderResult, childRenderer, renderInfo.flattened);
+      yield '</shadow-root>';
+    }
   }
 
   async * renderStyles(_elementClass: Constructor<HTMLElement>): AsyncIterator<string> {
@@ -95,7 +101,9 @@ export class LitHtmlChildRenderer {
         // TODO: this renders the child value in this slot, but we need
         // to render the part marker at the original location at [1]
         if (childValue instanceof TemplateResult) {
-          yield * renderInternal(childValue, undefined, this.claimedNodes, {slot: {slotName}});
+          // renderChildren is only called when flatted = true, so it's ok to
+          // hardcode that value here.
+          yield * renderInternal(childValue, undefined, this.claimedNodes, {slot: {slotName}, flattened: true});
         } else {
           if (childValue === null || childValue === undefined) {
             // do nothing

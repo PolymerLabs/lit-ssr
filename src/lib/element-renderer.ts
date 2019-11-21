@@ -1,3 +1,5 @@
+import { RenderInfo } from "./render.js";
+
 /**
  * @license
  * Copyright (c) 2019 The Polymer Project Authors. All rights reserved.
@@ -26,7 +28,7 @@ export interface ElementRenderer {
    * @param childRenderer A `ChildRenderer` that can be used to render children
    *     into slots.
    */
-  renderElement(e: HTMLElement, childRenderer: ChildRenderer): AsyncIterableIterator<string>;
+  renderElement(e: HTMLElement, childRenderer: ChildRenderer, renderInfo: RenderInfo): AsyncIterableIterator<string>;
 
   /**
    * Render the pre-scoped styles for an element definition.

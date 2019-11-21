@@ -47,8 +47,10 @@ const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 type SlotInfo = {
   slotName: string|undefined;
 };
-type RenderInfo = {
+
+export type RenderInfo = {
   slot?: SlotInfo;
+  flattened: boolean;
 }
 
 declare global {
@@ -74,10 +76,11 @@ export const getScopedStyles = () => {
   return scopedStyles;
 }
 
-export async function* render(value: unknown, childRenderer?: ChildRenderer|undefined): AsyncIterableIterator<string> {
+export async function* render(value: unknown, childRenderer?: ChildRenderer|undefined, flattened?: boolean): AsyncIterableIterator<string> {
+  flattened = flattened ?? true;
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
-    yield* renderInternal(value, childRenderer, new Set(), {});
+    yield* renderInternal(value, childRenderer, new Set(), {flattened});
   } else {
     yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
@@ -94,7 +97,7 @@ export async function* render(value: unknown, childRenderer?: ChildRenderer|unde
   yield `<!--/lit-part-->`;
 }
 
-export async function* renderInternal(result: TemplateResult, childRenderer: ChildRenderer|undefined, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {}): AsyncIterableIterator<string> {
+export async function* renderInternal(result: TemplateResult, childRenderer: ChildRenderer|undefined, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo = {flattened: true}): AsyncIterableIterator<string> {
 
   const {slot} = renderInfo;
 
@@ -172,7 +175,7 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
       } else {
         const tagName = node.tagName;
 
-        if (tagName === 'slot') {
+        if (tagName === 'slot' && renderInfo.flattened) {
           yield flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
 
@@ -256,7 +259,7 @@ export async function* renderInternal(result: TemplateResult, childRenderer: Chi
             claimedNodes);
           // TODO: look up a renderer instead of creating one
           const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(instance as LitElement, childRenderer);
+          yield* renderer.renderElement(instance as LitElement, childRenderer, renderInfo);
           distributedIndex = childRenderer.renderedPartIndex;
         }
       }

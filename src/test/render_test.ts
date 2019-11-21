@@ -28,6 +28,11 @@ const test = tapePromise(tape);
 
 (window as any).require = require;
 
+/**
+ * Promise for importing the "app module". This is a module that implements the
+ * templates and elements to be SSRed. In this case it implements our test
+ * cases.
+ */
 const appModuleImport = importModule('./render-test-module.js', import.meta.url, window);
 
 /* Scratch Space */
@@ -41,6 +46,11 @@ test.skip('work', async () => {
 
 /* Real Tests */
 
+/**
+ * This test helper waits for the app module to load, and returns an object
+ * with all the exports, and a render helper that renders a template to a
+ * string.
+ */
 const setup = async () => {
   const appModule = await appModuleImport;
   const collectResult = async (iterable: AsyncIterable<string>) => {
@@ -53,6 +63,7 @@ const setup = async () => {
   return {
     ...appModule.namespace,
     render: (r: any) => collectResult(appModule.namespace.render(r)),
+    renderDeclarative: (r: any) => collectResult(appModule.namespace.render(r, undefined, false)),
   };
 };
 
@@ -174,16 +185,29 @@ test('slot and static child', async (t: tapelib.Test) => {
   t.equal(result, `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
+test('slot and static child, not flattened', async (t: tapelib.Test) => {
+  const {renderDeclarative, slotWithStaticChild} = await setup();
+  const result = await renderDeclarative(slotWithStaticChild);
+  t.equal(result, `<!--lit-part rHUlXG22yCs=--><test-simple-slot><shadow-root><!--lit-part LLTdYazTGBk=--><main><slot></slot></main><!--/lit-part--></shadow-root><p>Hi</p></test-simple-slot><!--/lit-part-->`);
+});
+
 test('slot and two static children', async (t: tapelib.Test) => {
   const {render, slotWithStaticChildren} = await setup();
   const result = await render(slotWithStaticChildren);
   t.equal(result, `<!--lit-part LZW0XJWbf+0=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><h1>Yo</h1><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
+
 test('slot and dynamic child', async (t: tapelib.Test) => {
   const {render, slotWithDynamicChild} = await setup();
   const result = await render(slotWithDynamicChild);
   t.equal(result, `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
+});
+
+test('slot and dynamic child, not flattened', async (t: tapelib.Test) => {
+  const {renderDeclarative, slotWithDynamicChild} = await setup();
+  const result = await renderDeclarative(slotWithDynamicChild);
+  t.equal(result, `<!--lit-part x6hMzcii6DY=--><test-simple-slot><shadow-root><!--lit-part LLTdYazTGBk=--><main><slot></slot></main><!--/lit-part--></shadow-root><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--></test-simple-slot><!--/lit-part-->`);
 });
 
 test('slot and dynamic child and more bindings', async (t: tapelib.Test) => {

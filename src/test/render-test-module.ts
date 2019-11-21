@@ -17,7 +17,7 @@ import {repeat} from '../lib/directives/repeat.js';
 import {classMap} from '../lib/directives/class-map.js';
 import {LitElement, css, property, customElement} from 'lit-element';
 
-export {render, renderInternal, getScopedStyles} from '../lib/render.js';
+export {render, getScopedStyles} from '../lib/render.js';
 
 // Scratch pad...
 
@@ -123,7 +123,7 @@ export const twoSlotsWithDynamicChildrenOutOfOrder = html`<test-two-slots>${html
 
 @customElement('test-dynamic-slot')
 export class TestDynamicSlot extends LitElement {
-  @property() renderSlot = true;
+  @property({type: Boolean}) renderSlot = true;
   render() {
     return html`${this.renderSlot ? html`<slot></slot>` : nothing}`;
   }
