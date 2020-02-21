@@ -14,7 +14,7 @@
 
 import { ElementRenderer, ChildRenderer } from './element-renderer.js';
 import { LitElement, TemplateResult, CSSResult } from 'lit-element';
-import {render, renderInternal, RenderInfo} from './render.js';
+import {render, renderTemplateResult, RenderInfo} from './render.js';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import { Node, DefaultTreeNode } from 'parse5';
 import { isCommentNode, getAttr } from './parse5-utils.js';
@@ -101,9 +101,10 @@ export class LitHtmlChildRenderer {
         // TODO: this renders the child value in this slot, but we need
         // to render the part marker at the original location at [1]
         if (childValue instanceof TemplateResult) {
-          // renderChildren is only called when flatted = true, so it's ok to
+          // renderChildren is only called when flattened = true, so it's ok to
           // hardcode that value here.
-          yield * renderInternal(childValue, undefined, this.claimedNodes, {slot: {slotName}, flattened: true});
+          // TODO: instances: [] might not be what we want?
+          yield * renderTemplateResult(childValue, undefined, this.claimedNodes, {slot: {slotName}, flattened: true, instances: []});
         } else {
           if (childValue === null || childValue === undefined) {
             // do nothing

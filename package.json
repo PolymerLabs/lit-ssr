@@ -13,7 +13,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/chai": "^4.1.7",
-    "@types/node": "^12.6.2",
+    "@types/node": "^12.12.24",
     "@types/parse5": "^5.0.0",
     "@types/resolve": "0.0.8",
     "chai": "^4.2.0",
@@ -31,12 +31,16 @@
     "koa": "^2.7.0",
     "koa-node-resolve": "^1.0.0-pre.5",
     "koa-static": "^5.0.0",
-    "lit-element": "^2.1.0",
+    "lit-element": "file://../lit-element",
+    "lit-html": "file://../lit-html",
     "memory-streams": "^0.1.3",
     "parse5": "^5.1.0",
     "parse5-traverse": "^1.0.3",
     "resolve": "^1.10.1",
     "tape": "^4.11.0",
     "undom": "^0.3.3"
+  },
+  "engines": {
+    "node": ">=13.2.0"
   }
 }
