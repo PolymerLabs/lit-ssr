@@ -12,23 +12,28 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import { ElementRenderer, ChildRenderer } from './element-renderer.js';
-import { LitElement, TemplateResult, CSSResult } from 'lit-element';
+import {ElementRenderer, ChildRenderer} from './element-renderer.js';
+import {LitElement, TemplateResult, CSSResult} from 'lit-element';
 import {render, renderTemplateResult, RenderInfo} from './render.js';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import { Node, DefaultTreeNode } from 'parse5';
-import { isCommentNode, getAttr } from './parse5-utils.js';
-import { marker } from 'lit-html/lib/template';
+import {Node, DefaultTreeNode} from 'parse5';
+import {isCommentNode, getAttr} from './parse5-utils.js';
+import {marker} from 'lit-html/lib/template';
 
-export type Constructor<T> = {new(): T};
+export type Constructor<T> = {new (): T};
 
 /**
  * An object that renders elements of a certain type.
  */
 export class LitElementRenderer implements ElementRenderer {
-
-  async * renderElement(instance: LitElement, childRenderer: ChildRenderer, renderInfo: RenderInfo): AsyncIterableIterator<string> {
-    const renderResult = (instance as unknown as {render(): TemplateResult}).render();
+  async *renderElement(
+    instance: LitElement,
+    childRenderer: ChildRenderer,
+    renderInfo: RenderInfo
+  ): AsyncIterableIterator<string> {
+    const renderResult = ((instance as unknown) as {
+      render(): TemplateResult;
+    }).render();
     if (renderInfo.flattened) {
       yield* render(renderResult, childRenderer, renderInfo.flattened);
     } else {
@@ -38,7 +43,9 @@ export class LitElementRenderer implements ElementRenderer {
     }
   }
 
-  async * renderStyles(_elementClass: Constructor<HTMLElement>): AsyncIterator<string> {
+  async *renderStyles(
+    _elementClass: Constructor<HTMLElement>
+  ): AsyncIterator<string> {
     const scopedStyles = [];
     for (const [tagName, definition] of (customElements as any).__definitions) {
       const styles = [(definition.ctor as any).styles].flat(Infinity);
@@ -49,7 +56,7 @@ export class LitElementRenderer implements ElementRenderer {
         }
       }
     }
-    return scopedStyles;  
+    return scopedStyles;
   }
 }
 
@@ -70,7 +77,13 @@ export class LitHtmlChildRenderer {
 
   private readonly claimedNodes: Set<Node>;
 
-  constructor(nodes: DefaultTreeNode[], html: string, result: TemplateResult, partIndex: number, claimedNodes: Set<Node>) {
+  constructor(
+    nodes: DefaultTreeNode[],
+    html: string,
+    result: TemplateResult,
+    partIndex: number,
+    claimedNodes: Set<Node>
+  ) {
     this.nodes = nodes;
     this.html = html;
     this.result = result;
@@ -79,7 +92,9 @@ export class LitHtmlChildRenderer {
     this.renderedPartIndex = partIndex;
   }
 
-  async * renderChildren(slotName: string|undefined): AsyncIterableIterator<string> {
+  async *renderChildren(
+    slotName: string | undefined
+  ): AsyncIterableIterator<string> {
     if (this.nodes.length === 0) {
       return;
     }
@@ -90,7 +105,7 @@ export class LitHtmlChildRenderer {
       // other templates, so we can't render them by slicing the current
       // html string. We'll have to evaluate the sub templates and stream
       // them here...
-      if (isCommentNode(child) && (child.data === marker)) {
+      if (isCommentNode(child) && child.data === marker) {
         // TODO: render sub-template, pull in slotted chlidren here
         // What do we need to do to render children from another templates?
         //  - increment the partIndex from where the child marker node came from
@@ -104,7 +119,12 @@ export class LitHtmlChildRenderer {
           // renderChildren is only called when flattened = true, so it's ok to
           // hardcode that value here.
           // TODO: instances: [] might not be what we want?
-          yield * renderTemplateResult(childValue, undefined, this.claimedNodes, {slot: {slotName}, flattened: true, instances: []});
+          yield* renderTemplateResult(
+            childValue,
+            undefined,
+            this.claimedNodes,
+            {slot: {slotName}, flattened: true, instances: []}
+          );
         } else {
           if (childValue === null || childValue === undefined) {
             // do nothing
@@ -125,5 +145,4 @@ export class LitHtmlChildRenderer {
     }
     this.renderedPartIndex = childPartIndex;
   }
-
 }

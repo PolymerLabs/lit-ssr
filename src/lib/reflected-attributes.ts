@@ -24,39 +24,49 @@
  *    or
  *    property name (if reflected attribute name is identical).
  */
-const reflectedAttributesSource: (string|string[])[][] = [
+const reflectedAttributesSource: (string | string[])[][] = [
   [['input', 'select'], 'value'],
-  ['*', ['className', 'class'], 'id']
+  ['*', ['className', 'class'], 'id'],
 ];
 
 /**
  * Construct reflectedAttributes as nested maps for efficient lookup.
  */
 const reflectedAttributes = new Map<string, Map<string, string>>();
-const addPropertyForElement = (elementName: string, propertyName: string, attributeName: string) => {
+const addPropertyForElement = (
+  elementName: string,
+  propertyName: string,
+  attributeName: string
+) => {
   if (reflectedAttributes.has(elementName)) {
     reflectedAttributes.get(elementName)!.set(propertyName, attributeName);
   } else {
-    reflectedAttributes.set(elementName, new Map([[propertyName, attributeName]]));
+    reflectedAttributes.set(
+      elementName,
+      new Map([[propertyName, attributeName]])
+    );
   }
-}
-const addPropertiesForElement = (elementName: string, propertyNames: Array<string|Array<string>>) => {
+};
+const addPropertiesForElement = (
+  elementName: string,
+  propertyNames: Array<string | Array<string>>
+) => {
   for (const propertyName of propertyNames) {
     if (propertyName instanceof Array) {
       // Property has a different attribute name.
       addPropertyForElement(elementName, propertyName[0], propertyName[1]);
     } else {
-      addPropertyForElement(elementName, propertyName, propertyName)
+      addPropertyForElement(elementName, propertyName, propertyName);
     }
   }
-}
+};
 for (const entry of reflectedAttributesSource) {
   if (entry[0] instanceof Array) {
     for (const elementName of entry[0]) {
-      addPropertiesForElement(elementName, entry.slice(1))
+      addPropertiesForElement(elementName, entry.slice(1));
     }
   } else {
-    addPropertiesForElement(entry[0] as string, entry.slice(1))
+    addPropertiesForElement(entry[0] as string, entry.slice(1));
   }
 }
 
@@ -68,11 +78,14 @@ for (const entry of reflectedAttributesSource) {
  * the 'class' attribute, so:
  * reflectedAttributeName('div', 'className') returns 'class'
  */
-export const reflectedAttributeName = (elementName: string, propertyName: string): string|undefined => {
+export const reflectedAttributeName = (
+  elementName: string,
+  propertyName: string
+): string | undefined => {
   const attributes = reflectedAttributes.get(elementName);
   if (attributes !== undefined && attributes.has(propertyName)) {
     return attributes.get(propertyName);
   } else {
     return reflectedAttributes.get('*')!.get(propertyName);
   }
-}
+};

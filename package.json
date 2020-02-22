@@ -7,17 +7,19 @@
   "scripts": {
     "build": "tsc",
     "start": "node --experimental-modules --experimental-vm-modules ./test/no-dom/server.js",
-    "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js | tap-spec"
+    "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js | tap-spec",
+    "format": "prettier src/**/*.ts --write"
   },
   "author": "",
-  "license": "ISC",
+  "license": "BSD-3-Clause",
+  "repository": "PolymerLabs/lit-ssr",
   "devDependencies": {
     "@types/chai": "^4.1.7",
-    "@types/node": "^12.12.24",
+    "@types/node": "^13.7.4",
     "@types/parse5": "^5.0.0",
-    "@types/resolve": "0.0.8",
+    "@types/resolve": "^1.14.0",
     "chai": "^4.2.0",
-    "lit-html": "^1.0.0",
+    "prettier": "^1.19.1",
     "tap-spec": "^5.0.0",
     "tape-promise": "^4.0.0",
     "typescript": "^3.7.2"
@@ -41,6 +43,6 @@
     "undom": "^0.3.3"
   },
   "engines": {
-    "node": ">=13.2.0"
+    "node": ">=13.9.0"
   }
 }

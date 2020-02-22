@@ -7,7 +7,13 @@
  */
 
 // types only
-import {DefaultTreeNode, DefaultTreeElement, Node, DefaultTreeCommentNode, DefaultTreeDocumentFragment} from 'parse5';
+import {
+  DefaultTreeNode,
+  DefaultTreeElement,
+  Node,
+  DefaultTreeCommentNode,
+  DefaultTreeDocumentFragment,
+} from 'parse5';
 import * as parse5lib from 'parse5';
 
 const parse5 = require('parse5') as typeof parse5lib;
@@ -26,8 +32,9 @@ export function filter(iter: any, predicate: any, matches: any[] = []) {
 
 export function getAttr(ast: Node, name: string) {
   if (ast.hasOwnProperty('attrs')) {
-    const attr = (<{name: string, value: any}[]>(<DefaultTreeElement>ast).attrs)
-                     .find(({name: attrName}) => attrName === name);
+    const attr = (<{name: string; value: any}[]>(
+      (<DefaultTreeElement>ast).attrs
+    )).find(({name: attrName}) => attrName === name);
     if (attr) {
       return attr.value;
     }
@@ -46,8 +53,9 @@ export function getTextContent(node: any): string {
 }
 
 export function setAttr(ast: any, name: any, value: any) {
-  let attr = (<{name: string, value: any}[]>ast.attrs)
-                 .find(({name: attrName}) => attrName === name);
+  let attr = (<{name: string; value: any}[]>ast.attrs).find(
+    ({name: attrName}) => attrName === name
+  );
   if (attr) {
     attr.value = value;
   } else {
@@ -61,7 +69,11 @@ export function insertBefore(parent: any, oldNode: any, newNode: any) {
 }
 
 export function insertNode(
-    parent: any, index: any, newNode: any, replace: any = undefined) {
+  parent: any,
+  index: any,
+  newNode: any,
+  replace: any = undefined
+) {
   if (!parent.childNodes) {
     parent.childNodes = [];
   }
@@ -82,12 +94,15 @@ export function insertNode(
     removedNode = parent.childNodes[index];
   }
   Array.prototype.splice.apply(
-      <any[]>parent.childNodes,
-      (<any>[index, replace ? 1 : 0]).concat(newNodes));
-  newNodes.forEach((n) => {n.parentNode = parent});
+    <any[]>parent.childNodes,
+    (<any>[index, replace ? 1 : 0]).concat(newNodes)
+  );
+  newNodes.forEach((n) => {
+    n.parentNode = parent;
+  });
 
   if (removedNode) {
-    removedNode.parentNode = undefined
+    removedNode.parentNode = undefined;
   }
 }
 
@@ -95,37 +110,46 @@ export function isElement(node: DefaultTreeNode): node is DefaultTreeElement {
   return (node as DefaultTreeElement).tagName !== undefined;
 }
 
-export function isCommentNode(node: DefaultTreeNode): node is DefaultTreeCommentNode {
+export function isCommentNode(
+  node: DefaultTreeNode
+): node is DefaultTreeCommentNode {
   return node.nodeName === '#comment';
 }
 
-export function isDocumentFragment(node: DefaultTreeNode): node is DefaultTreeDocumentFragment {
+export function isDocumentFragment(
+  node: DefaultTreeNode
+): node is DefaultTreeDocumentFragment {
   return node.nodeName === '#document-fragment';
 }
 
-export function isTextNode(node: DefaultTreeNode): node is parse5lib.DefaultTreeTextNode {
+export function isTextNode(
+  node: DefaultTreeNode
+): node is parse5lib.DefaultTreeTextNode {
   return node.nodeName === '#text';
 }
 
 export const defaultChildNodes = (node: DefaultTreeElement) => node.childNodes;
 
-export function* depthFirst(node: DefaultTreeNode|DefaultTreeDocumentFragment, getChildNodes: any = defaultChildNodes):
-    Iterable<DefaultTreeNode> {
-      yield node;
-      const childNodes = getChildNodes(node);
-      if (childNodes === undefined) {
-        return;
-      }
-      for (const child of childNodes) {
-        yield* depthFirst(child, getChildNodes);
-      }
-    }
+export function* depthFirst(
+  node: DefaultTreeNode | DefaultTreeDocumentFragment,
+  getChildNodes: any = defaultChildNodes
+): Iterable<DefaultTreeNode> {
+  yield node;
+  const childNodes = getChildNodes(node);
+  if (childNodes === undefined) {
+    return;
+  }
+  for (const child of childNodes) {
+    yield* depthFirst(child, getChildNodes);
+  }
+}
 
 export function nodeWalkAll(
-    node: any,
-    predicate: any,
-    matches: any = [],
-    getChildNodes: any = defaultChildNodes) {
+  node: any,
+  predicate: any,
+  matches: any = [],
+  getChildNodes: any = defaultChildNodes
+) {
   return filter(depthFirst(node, getChildNodes), predicate, matches);
 }
 
@@ -133,12 +157,15 @@ export function removeFakeRootElements(node: any) {
   const fakeRootElements: any[] = [];
   traverse(node, {
     pre: (node: any) => {
-      if (node.nodeName && node.nodeName.match(/^(html|head|body)$/i) &&
-          !node.sourceCodeLocation) {
+      if (
+        node.nodeName &&
+        node.nodeName.match(/^(html|head|body)$/i) &&
+        !node.sourceCodeLocation
+      ) {
         fakeRootElements.unshift(node);
       }
-    }
-  })
+    },
+  });
   fakeRootElements.forEach(removeNodeSaveChildren);
 }
 

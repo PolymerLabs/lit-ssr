@@ -9,4 +9,5 @@ export const renderLightImpl = (part: NodePart) => {
 
 export const renderLight = directive(() => renderLightImpl);
 
-export const isRenderLightDirective = (value: unknown): boolean => value === renderLightImpl;
+export const isRenderLightDirective = (value: unknown): boolean =>
+  value === renderLightImpl;

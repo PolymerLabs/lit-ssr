@@ -12,26 +12,45 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import { TemplateResult, nothing } from 'lit-html';
-import {marker, markerRegex, lastAttributeNameRegex} from 'lit-html/lib/template.js';
+import {TemplateResult, nothing} from 'lit-html';
+import {
+  marker,
+  markerRegex,
+  lastAttributeNameRegex,
+} from 'lit-html/lib/template.js';
 
 // types only
 import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
 
-import { depthFirst, parseFragment, isCommentNode, isElement, getAttr, isTextNode } from './parse5-utils.js';
-import { LitElement, CSSResult } from 'lit-element';
+import {
+  depthFirst,
+  parseFragment,
+  isCommentNode,
+  isElement,
+  getAttr,
+  isTextNode,
+} from './parse5-utils.js';
+import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import { LitHtmlChildRenderer, LitElementRenderer } from './lit-element-renderer.js';
-import { ChildRenderer } from './element-renderer.js';
-import { isRepeatDirective, RepeatPreRenderer } from './directives/repeat.js';
-import { isClassMapDirective, ClassMapPreRenderer } from './directives/class-map.js';
-import { reflectedAttributeName } from './reflected-attributes.js';
-import { isRenderLightDirective } from './render-light.js';
+import {
+  LitHtmlChildRenderer,
+  LitElementRenderer,
+} from './lit-element-renderer.js';
+import {ChildRenderer} from './element-renderer.js';
+import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
+import {
+  isClassMapDirective,
+  ClassMapPreRenderer,
+} from './directives/class-map.js';
+import {reflectedAttributeName} from './reflected-attributes.js';
+import {isRenderLightDirective} from './render-light.js';
 
 const traverse = require('parse5-traverse');
 
-
-const templateCache = new Map<TemplateStringsArray, {html: string, ast: DefaultTreeDocumentFragment}>();
+const templateCache = new Map<
+  TemplateStringsArray,
+  {html: string; ast: DefaultTreeDocumentFragment}
+>();
 
 const getTemplate = (result: TemplateResult) => {
   const template = templateCache.get(result.strings);
@@ -49,14 +68,14 @@ const getTemplate = (result: TemplateResult) => {
 const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
 type SlotInfo = {
-  slotName: string|undefined;
+  slotName: string | undefined;
 };
 
 export type RenderInfo = {
   slot?: SlotInfo;
   flattened: boolean;
-  instances: Array<{tagName: string, instance?: LitElement}>;
-}
+  instances: Array<{tagName: string; instance?: LitElement}>;
+};
 
 declare global {
   interface Array<T> {
@@ -79,13 +98,21 @@ export const getScopedStyles = () => {
     }
   }
   return scopedStyles;
-}
-export async function* render(value: unknown, childRenderer: ChildRenderer|undefined, flattened: boolean = false): AsyncIterableIterator<string> {
+};
+export async function* render(
+  value: unknown,
+  childRenderer: ChildRenderer | undefined,
+  flattened: boolean = false
+): AsyncIterableIterator<string> {
   console.log('render');
   yield* renderValue(value, childRenderer, {flattened, instances: []});
 }
 
-export async function* renderValue(value: unknown, childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo): AsyncIterableIterator<string> {
+export async function* renderValue(
+  value: unknown,
+  childRenderer: ChildRenderer | undefined,
+  renderInfo: RenderInfo
+): AsyncIterableIterator<string> {
   // flattened = flattened ?? true;
 
   // console.log('render', {
@@ -127,8 +154,12 @@ export async function* renderValue(value: unknown, childRenderer: ChildRenderer|
   yield `<!--/lit-part-->`;
 }
 
-export async function* renderTemplateResult(result: TemplateResult, childRenderer: ChildRenderer|undefined, claimedNodes: Set<Node> = new Set(), renderInfo: RenderInfo /* = {flattened: true} */): AsyncIterableIterator<string> {
-
+export async function* renderTemplateResult(
+  result: TemplateResult,
+  childRenderer: ChildRenderer | undefined,
+  claimedNodes: Set<Node> = new Set(),
+  renderInfo: RenderInfo /* = {flattened: true} */
+): AsyncIterableIterator<string> {
   const {slot} = renderInfo;
 
   // In order to render a TemplateResult we have to handle and stream out
@@ -155,7 +186,7 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
   let distributedIndex = -1;
 
   /* The last offset of html written to the stream */
-  let lastOffset: number|undefined = 0;
+  let lastOffset: number | undefined = 0;
 
   const flushTo = (offset?: number) => {
     if (lastOffset === undefined) {
@@ -194,7 +225,7 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
       }
     } else if (isElement(node)) {
       // If the element is custom, this will be the instantiated class
-      let instance: LitElement|undefined = undefined;
+      let instance: LitElement | undefined = undefined;
       let writeTag = false;
 
       if (claimedNodes.has(node)) {
@@ -228,7 +259,9 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
             try {
               instance = new ctor();
               console.log('new instance', renderInfo.instances);
-              renderInfo.instances[renderInfo.instances.length - 1].instance = instance;
+              renderInfo.instances[
+                renderInfo.instances.length - 1
+              ].instance = instance;
             } catch (e) {
               console.error('Exception in custom element constructor', e);
             }
@@ -240,14 +273,18 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
         let boundAttrsCount = 0;
         for (const attr of node.attrs) {
           if (attr.name.endsWith('$lit$')) {
-            const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
+            const attrSourceLocation = node.sourceCodeLocation!.attrs[
+              attr.name
+            ];
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
 
             yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
-              const propertyName = lastAttributeNameRegex.exec(result.strings[partIndex])![2].slice(1);
+              const propertyName = lastAttributeNameRegex
+                .exec(result.strings[partIndex])![2]
+                .slice(1);
               const value = result.values[partIndex++];
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
@@ -258,7 +295,10 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
                 yield `${reflectedName}="${value}"`;
               }
             } else {
-              const attributeName = attr.name.substring(0, attr.name.length - 5);
+              const attributeName = attr.name.substring(
+                0,
+                attr.name.length - 5
+              );
               let attributeString = `${attributeName}="`;
               // attr.value has the raw attribute value, which may contain multiple
               // bindings. Replace the markers with their resolved values.
@@ -291,10 +331,15 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
             html,
             result,
             partIndex,
-            claimedNodes);
+            claimedNodes
+          );
           // TODO: look up a renderer instead of creating one
           const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(instance as LitElement, childRenderer, renderInfo);
+          yield* renderer.renderElement(
+            instance as LitElement,
+            childRenderer,
+            renderInfo
+          );
           distributedIndex = childRenderer.renderedPartIndex;
         }
         // console.log('end element', node.tagName, renderInfo.instances);
@@ -343,7 +388,7 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
             renderInfo.instances.pop();
           }
           console.log('post', node.nodeName);
-        }
+        },
       });
       for (const child of depthFirst(node)) {
         console.log('depthFirst', child.nodeName);
@@ -357,6 +402,8 @@ export async function* renderTemplateResult(result: TemplateResult, childRendere
 
   yield flushTo();
   if (partIndex !== result.values.length) {
-    throw new Error(`unexpected final partIndex: ${partIndex} !== ${result.values.length}`);
+    throw new Error(
+      `unexpected final partIndex: ${partIndex} !== ${result.values.length}`
+    );
   }
-};
+}
