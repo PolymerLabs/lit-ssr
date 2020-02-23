@@ -6,7 +6,7 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node --experimental-modules --experimental-vm-modules ./test/no-dom/server.js",
+    "start": "node --experimental-modules --experimental-vm-modules ./demo/server.js",
     "test": "node --experimental-modules --experimental-vm-modules ./test/render_test.js | tap-spec",
     "format": "prettier src/**/*.ts --write"
   },

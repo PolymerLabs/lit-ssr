@@ -1,5 +1,6 @@
 node_modules/
 /lib
+/demo
 /test/**/*.js
 /test/**/*.js.map
 /test/**/*.d.ts

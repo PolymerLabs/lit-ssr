@@ -13,39 +13,44 @@
  */
 
 import module from 'module';
-import {window} from '../../lib/dom-shim.js';
-import {importModule} from '../../lib/import-module.js';
-// koablib is only used to provide type for require('Koa')
-import * as koalib from 'koa';
-import { URL } from 'url';
+import Koa from 'koa';
+import staticFiles from 'koa-static';
+import koaNodeResolve from 'koa-node-resolve';
+import {URL} from 'url';
 import * as path from 'path';
-import { AsyncIterableReader } from '../../lib/async-iterator-readable.js';
 
-const { createRequire } = module as any;
+import {window} from '../lib/dom-shim.js';
+import {importModule} from '../lib/import-module.js';
+import {AsyncIterableReader} from '../lib/async-iterator-readable.js';
+
+const {createRequire} = module;
+const {nodeResolve} = koaNodeResolve;
+
 const require = createRequire(import.meta.url);
 
 const moduleUrl = new URL(import.meta.url);
 console.log(moduleUrl.pathname);
-const packageRoot = path.resolve(moduleUrl.pathname, '../../..');
+const packageRoot = path.resolve(moduleUrl.pathname, '../..');
 console.log({packageRoot});
-
-type Koa = typeof koalib
-const Koa = require('koa') as Koa;
-const staticFiles = require('koa-static');
-const { nodeResolve } = require('koa-node-resolve');
 
 (window as any).require = require;
 
 const port = 8080;
 new Koa()
-  .use(async (ctx: koalib.Context, next: Function) => {
+  .use(async (ctx: Koa.Context, next: Function) => {
     if (ctx.URL.pathname !== '/') {
       await next();
       return;
     }
     const appModule = importModule('./app-server.js', import.meta.url, window);
     const renderApp = (await appModule).namespace.renderApp;
-    const stream = new AsyncIterableReader(renderApp({name: 'SSR', message: 'This is a test.', items: ['foo', 'bar', 'qux']}));
+    const stream = new AsyncIterableReader(
+      renderApp({
+        name: 'SSR',
+        message: 'This is a test.',
+        items: ['foo', 'bar', 'qux'],
+      })
+    );
     ctx.type = 'text/html';
     ctx.body = stream;
   })
