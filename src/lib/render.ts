@@ -47,6 +47,10 @@ import {isRenderLightDirective} from './render-light.js';
 
 const traverse = require('parse5-traverse');
 
+declare global {
+  var customElements: any;
+}
+
 const templateCache = new Map<
   TemplateStringsArray,
   {html: string; ast: DefaultTreeDocumentFragment}
@@ -133,7 +137,8 @@ export async function* renderValue(
     } else if (isRepeatDirective(value)) {
       yield* (value as RepeatPreRenderer)(childRenderer, renderInfo);
     } else if (isRenderLightDirective(value)) {
-      console.log('renderLight!', renderInfo.instances);
+      // If a value was produced with renderLight(), we want to call and render
+      // the renderLight() method.
       const instance = renderInfo.instances[renderInfo.instances.length - 1];
       // TODO, move out of here into something LitElement specific
       if (instance.instance !== undefined) {
