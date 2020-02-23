@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import module from 'module';
+import {createRequire} from 'module';
 import Koa from 'koa';
 import staticFiles from 'koa-static';
 import koaNodeResolve from 'koa-node-resolve';
@@ -23,39 +23,41 @@ import {window} from '../lib/dom-shim.js';
 import {importModule} from '../lib/import-module.js';
 import {AsyncIterableReader} from '../lib/async-iterator-readable.js';
 
-const {createRequire} = module;
 const {nodeResolve} = koaNodeResolve;
 
-const require = createRequire(import.meta.url);
-
 const moduleUrl = new URL(import.meta.url);
-console.log(moduleUrl.pathname);
 const packageRoot = path.resolve(moduleUrl.pathname, '../..');
-console.log({packageRoot});
 
-(window as any).require = require;
+// We need to give window a require to load CJS modules used by the SSR
+// implementation. If we had only JS module dependencies, we wouldn't need this.
+(window as any).require = createRequire(import.meta.url);
 
 const port = 8080;
-new Koa()
-  .use(async (ctx: Koa.Context, next: Function) => {
-    if (ctx.URL.pathname !== '/') {
-      await next();
-      return;
-    }
-    const appModule = importModule('./app-server.js', import.meta.url, window);
-    const renderApp = (await appModule).namespace.renderApp;
-    const stream = new AsyncIterableReader(
-      renderApp({
-        name: 'SSR',
-        message: 'This is a test.',
-        items: ['foo', 'bar', 'qux'],
-      })
-    );
-    ctx.type = 'text/html';
-    ctx.body = stream;
-  })
-  .use(nodeResolve())
-  .use(staticFiles(packageRoot))
-  .listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-  });
+
+// This is a fairly standard Koa server that represents how the SSR API might
+// be used.
+const app = new Koa();
+app.use(async (ctx: Koa.Context, next: Function) => {
+  // Pass through anything not the root path to static file serving
+  if (ctx.URL.pathname !== '/') {
+    await next();
+    return;
+  }
+
+  // Import the server-side entry point into a new VM context
+  const appModule = importModule('./app-server.js', import.meta.url, window);
+  const renderApp = (await appModule).namespace.renderApp;
+  ctx.type = 'text/html';
+  ctx.body = new AsyncIterableReader(
+    renderApp({
+      name: 'SSR',
+      message: 'This is a test.',
+      items: ['foo', 'bar', 'qux'],
+    })
+  );
+});
+app.use(nodeResolve());
+app.use(staticFiles(packageRoot));
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
+});
