@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 /**
  * @license
  * Copyright (c) 2019 The Polymer Project Authors. All rights reserved.
@@ -46,10 +48,6 @@ import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from './render-light.js';
 
 const traverse = require('parse5-traverse');
-
-declare global {
-  var customElements: any;
-}
 
 const templateCache = new Map<
   TemplateStringsArray,

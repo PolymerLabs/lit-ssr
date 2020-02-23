@@ -1,3 +1,5 @@
+/// <reference lib="dom" />
+
 import {RenderInfo} from './render.js';
 
 /**

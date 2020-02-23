@@ -12,25 +12,19 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {createRequire} from 'module';
 import Koa from 'koa';
 import staticFiles from 'koa-static';
 import koaNodeResolve from 'koa-node-resolve';
 import {URL} from 'url';
 import * as path from 'path';
 
-import {window} from '../lib/dom-shim.js';
-import {importModule} from '../lib/import-module.js';
+import {renderModule} from '../lib/render-module.js';
 import {AsyncIterableReader} from '../lib/async-iterator-readable.js';
 
 const {nodeResolve} = koaNodeResolve;
 
 const moduleUrl = new URL(import.meta.url);
 const packageRoot = path.resolve(moduleUrl.pathname, '../..');
-
-// We need to give window a require to load CJS modules used by the SSR
-// implementation. If we had only JS module dependencies, we wouldn't need this.
-(window as any).require = createRequire(import.meta.url);
 
 const port = 8080;
 
@@ -44,17 +38,21 @@ app.use(async (ctx: Koa.Context, next: Function) => {
     return;
   }
 
-  // Import the server-side entry point into a new VM context
-  const appModule = importModule('./app-server.js', import.meta.url, window);
-  const renderApp = (await appModule).namespace.renderApp;
+  const ssrResult = await (renderModule(
+    './app-server.js',
+    import.meta.url,
+    'renderApp',
+    [
+      {
+        name: 'SSR',
+        message: 'This is a test.',
+        items: ['foo', 'bar', 'qux'],
+      },
+    ]
+  ) as Promise<AsyncIterable<unknown>>);
+
   ctx.type = 'text/html';
-  ctx.body = new AsyncIterableReader(
-    renderApp({
-      name: 'SSR',
-      message: 'This is a test.',
-      items: ['foo', 'bar', 'qux'],
-    })
-  );
+  ctx.body = new AsyncIterableReader(ssrResult);
 });
 app.use(nodeResolve());
 app.use(staticFiles(packageRoot));
