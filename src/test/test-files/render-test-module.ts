@@ -19,19 +19,6 @@ import {LitElement, css, property, customElement} from 'lit-element';
 
 export {render, getScopedStyles} from '../../lib/render.js';
 
-// Scratch pad...
-
-@customElement('x-foo')
-export class XFoo extends LitElement {
-  @property() x?: string = '42';
-
-  render() {
-    return html`<main>${this.x}<slot></slot></main>`;
-  }
-}
-export const workTemplate = (s: string) => html`<div><x-foo><p>woot</p></x-foo>${s}</div>`;
-
-
 /* Real Tests */
 
 export const simpleTemplateResult = html`<div></div>`;

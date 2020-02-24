@@ -39,14 +39,6 @@ const appModuleImport = importModule(
   window
 );
 
-/* Scratch Space */
-
-test.skip('work', async () => {
-  const {render, workTemplate} = await setup();
-  const result = await render(workTemplate('foo'));
-  console.log(result);
-});
-
 /* Real Tests */
 
 /**
@@ -56,6 +48,8 @@ test.skip('work', async () => {
  */
 const setup = async () => {
   const appModule = await appModuleImport;
+
+  /** Joins an AsyncIterable into a string */
   const collectResult = async (iterable: AsyncIterable<string>) => {
     let result = '';
     for await (const chunk of iterable) {
@@ -63,11 +57,16 @@ const setup = async () => {
     }
     return result;
   };
+
   return {
     ...appModule.namespace,
+
+    /** Renders the value with declarative shadow roots */
     render: (r: any) => collectResult(appModule.namespace.render(r)),
-    renderDeclarative: (r: any) =>
-      collectResult(appModule.namespace.render(r, undefined, false)),
+
+    /** Renders the value with flattened shadow roots */
+    renderFlattened: (r: any) =>
+      collectResult(appModule.namespace.render(r, undefined, true)),
   };
 };
 
@@ -193,30 +192,43 @@ test('nested template', async (t: tapelib.Test) => {
 
 /* Custom Elements */
 
-test.skip('simple custom element', async (t: tapelib.Test) => {
+test('simple custom element', async (t: tapelib.Test) => {
   const {render, simpleTemplateWithElement} = await setup();
   const result = await render(simpleTemplateWithElement);
   t.equal(
     result,
-    `<!--lit-part tjmYe1kHIVM=--><test-simple><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--></test-simple><!--/lit-part-->`
+    `<!--lit-part tjmYe1kHIVM=--><test-simple><shadow-root><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--></shadow-root></test-simple><!--/lit-part-->`
   );
 });
 
-test.skip('element with property', async (t: tapelib.Test) => {
+test('element with property', async (t: tapelib.Test) => {
   const {render, elementWithProperty} = await setup();
   const result = await render(elementWithProperty);
   // TODO: we'd like to remove the extra space in the start tag
   t.equal(
     result,
-    `<!--lit-part v2CxGIW+qHI=--><test-property  __lit-attr="1"><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></test-property><!--/lit-part-->`
+    `<!--lit-part v2CxGIW+qHI=--><test-property  __lit-attr="1"><shadow-root><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></shadow-root></test-property><!--/lit-part-->`
   );
 });
 
 /* Slots and Distribution */
 
-test.skip('no slot', async (t: tapelib.Test) => {
+/* Declarative Shadow Root */
+
+test('no slot', async (t: tapelib.Test) => {
   const {render, noSlot} = await setup();
   const result = await render(noSlot);
+  t.equal(
+    result,
+    `<!--lit-part OpS0yFtM48Q=--><test-simple><shadow-root><!--lit-part UNbWrd8S5FY=--><main></main><!--/lit-part--></shadow-root><p>Hi</p></test-simple><!--/lit-part-->`
+  );
+});
+
+/* Flattened Shadow Root */
+
+test('no slot', async (t: tapelib.Test) => {
+  const {renderFlattened, noSlot} = await setup();
+  const result = await renderFlattened(noSlot);
   // TODO: this is probably a bit wrong, because we don't want to display
   // non-slotted children, but we do need to put them somewhere. We probably
   // need to hide them via styling
@@ -226,117 +238,120 @@ test.skip('no slot', async (t: tapelib.Test) => {
   );
 });
 
-test.skip('slot and static child', async (t: tapelib.Test) => {
-  const {render, slotWithStaticChild} = await setup();
-  const result = await render(slotWithStaticChild);
+test('slot and static child', async (t: tapelib.Test) => {
+  const {renderFlattened, slotWithStaticChild} = await setup();
+  const result = await renderFlattened(slotWithStaticChild);
   t.equal(
     result,
     `<!--lit-part rHUlXG22yCs=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`
   );
 });
 
-test.skip('slot and static child, not flattened', async (t: tapelib.Test) => {
-  const {renderDeclarative, slotWithStaticChild} = await setup();
-  const result = await renderDeclarative(slotWithStaticChild);
+test('slot and static child, not flattened', async (t: tapelib.Test) => {
+  const {render, slotWithStaticChild} = await setup();
+  const result = await render(slotWithStaticChild);
   t.equal(
     result,
     `<!--lit-part rHUlXG22yCs=--><test-simple-slot><shadow-root><!--lit-part LLTdYazTGBk=--><main><slot></slot></main><!--/lit-part--></shadow-root><p>Hi</p></test-simple-slot><!--/lit-part-->`
   );
 });
 
-test.skip('slot and two static children', async (t: tapelib.Test) => {
-  const {render, slotWithStaticChildren} = await setup();
-  const result = await render(slotWithStaticChildren);
+test('slot and two static children', async (t: tapelib.Test) => {
+  const {renderFlattened, slotWithStaticChildren} = await setup();
+  const result = await renderFlattened(slotWithStaticChildren);
   t.equal(
     result,
     `<!--lit-part LZW0XJWbf+0=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><h1>Yo</h1><p>Hi</p></main><!--/lit-part--></test-simple-slot><!--/lit-part-->`
   );
 });
 
-test.skip('slot and dynamic child', async (t: tapelib.Test) => {
-  const {render, slotWithDynamicChild} = await setup();
-  const result = await render(slotWithDynamicChild);
+test('slot and dynamic child', async (t: tapelib.Test) => {
+  const {renderFlattened, slotWithDynamicChild} = await setup();
+  const result = await renderFlattened(slotWithDynamicChild);
   t.equal(
     result,
     `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--/lit-part-->`
   );
 });
 
-test.skip('slot and dynamic child, not flattened', async (t: tapelib.Test) => {
-  const {renderDeclarative, slotWithDynamicChild} = await setup();
-  const result = await renderDeclarative(slotWithDynamicChild);
+test('slot and dynamic child, not flattened', async (t: tapelib.Test) => {
+  const {render, slotWithDynamicChild} = await setup();
+  const result = await render(slotWithDynamicChild);
   t.equal(
     result,
     `<!--lit-part x6hMzcii6DY=--><test-simple-slot><shadow-root><!--lit-part LLTdYazTGBk=--><main><slot></slot></main><!--/lit-part--></shadow-root><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--></test-simple-slot><!--/lit-part-->`
   );
 });
 
-test.skip('slot and dynamic child and more bindings', async (t: tapelib.Test) => {
-  const {render, slotWithDynamicChildAndMore} = await setup();
-  const result = await render(slotWithDynamicChildAndMore);
+test('slot and dynamic child and more bindings', async (t: tapelib.Test) => {
+  const {renderFlattened, slotWithDynamicChildAndMore} = await setup();
+  const result = await renderFlattened(slotWithDynamicChildAndMore);
   t.equal(
     result,
     `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part-->42<!--/lit-part--><!--/lit-part-->`
   );
 });
 
-test.skip('slot and reused dynamic child', async (t: tapelib.Test) => {
-  const {render, slotWithReusedDynamicChild} = await setup();
-  const result = await render(slotWithReusedDynamicChild);
+test('slot and reused dynamic child', async (t: tapelib.Test) => {
+  const {renderFlattened, slotWithReusedDynamicChild} = await setup();
+  const result = await renderFlattened(slotWithReusedDynamicChild);
   t.equal(
     result,
     `<!--lit-part x6hMzcii6DY=--><test-simple-slot><!--lit-part LLTdYazTGBk=--><main><p>Hi</p></main><!--/lit-part--><!--lit-part P/cIB3F0dnw=--><!--/lit-part--></test-simple-slot><!--lit-part P/cIB3F0dnw=--><p>Hi</p><!--/lit-part--><!--/lit-part-->`
   );
 });
 
-test.skip('two slots and static children', async (t: tapelib.Test) => {
-  const {render, twoSlotsWithStaticChildren} = await setup();
-  const result = await render(twoSlotsWithStaticChildren);
+test('two slots and static children', async (t: tapelib.Test) => {
+  const {renderFlattened, twoSlotsWithStaticChildren} = await setup();
+  const result = await renderFlattened(twoSlotsWithStaticChildren);
   t.equal(
     result,
     `<!--lit-part fsyeGt7exVM=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`
   );
 });
 
-test.skip('two slots and static children out of order', async (t: tapelib.Test) => {
-  const {render, twoSlotsWithStaticChildrenOutOfOrder} = await setup();
-  const result = await render(twoSlotsWithStaticChildrenOutOfOrder);
+test('two slots and static children out of order', async (t: tapelib.Test) => {
+  const {renderFlattened, twoSlotsWithStaticChildrenOutOfOrder} = await setup();
+  const result = await renderFlattened(twoSlotsWithStaticChildrenOutOfOrder);
   t.equal(
     result,
     `<!--lit-part aEEMZuiFlNA=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--></test-two-slots><!--/lit-part-->`
   );
 });
 
-test.skip('two slots and dynamic children', async (t: tapelib.Test) => {
-  const {render, twoSlotsWithDynamicChildren} = await setup();
-  const result = await render(twoSlotsWithDynamicChildren);
+test('two slots and dynamic children', async (t: tapelib.Test) => {
+  const {renderFlattened, twoSlotsWithDynamicChildren} = await setup();
+  const result = await renderFlattened(twoSlotsWithDynamicChildren);
   t.equal(
     result,
     `<!--lit-part thp7M3lVHrI=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--><!--lit-part bSf9M2IgJsk=--><!--/lit-part--></test-two-slots><!--/lit-part-->`
   );
 });
 
-test.skip('two slots and dynamic children out of order', async (t: tapelib.Test) => {
-  const {render, twoSlotsWithDynamicChildrenOutOfOrder} = await setup();
-  const result = await render(twoSlotsWithDynamicChildrenOutOfOrder);
+test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
+  const {
+    renderFlattened,
+    twoSlotsWithDynamicChildrenOutOfOrder,
+  } = await setup();
+  const result = await renderFlattened(twoSlotsWithDynamicChildrenOutOfOrder);
   t.equal(
     result,
     `<!--lit-part thp7M3lVHrI=--><test-two-slots><!--lit-part /ndb6GrWB0A=--><main><h1>Yo</h1></main><p slot="a">Hi</p><!--/lit-part--><!--lit-part O/QniJQm82M=--><!--/lit-part--></test-two-slots><!--/lit-part-->`
   );
 });
 
-test.skip('dynamic slot', async (t: tapelib.Test) => {
-  const {render, dynamicSlot} = await setup();
-  const result = await render(dynamicSlot(true));
+test('dynamic slot', async (t: tapelib.Test) => {
+  const {renderFlattened, dynamicSlot} = await setup();
+  const result = await renderFlattened(dynamicSlot(true));
   t.equal(
     result,
     `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`
   );
 });
 
-test.skip('dynamic slot, unrendered', async (t: tapelib.Test) => {
-  const {render, dynamicSlot} = await setup();
-  const result = await render(dynamicSlot(false));
+test('dynamic slot, unrendered', async (t: tapelib.Test) => {
+  const {renderFlattened, dynamicSlot} = await setup();
+  const result = await renderFlattened(dynamicSlot(false));
   // TODO: this is a bit wrong. See the comment in the "no slot" test
   // (<p>Hi</p> should be hidden somehow)
   t.equal(
