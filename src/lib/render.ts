@@ -106,7 +106,6 @@ export async function* render(
   childRenderer: ChildRenderer | undefined,
   flattened: boolean = false
 ): AsyncIterableIterator<string> {
-  console.log('render');
   yield* renderValue(value, childRenderer, {flattened, instances: []});
 }
 
@@ -261,7 +260,6 @@ export async function* renderTemplateResult(
             // Instantiate the element and stream its render() result
             try {
               instance = new ctor();
-              console.log('new instance', renderInfo.instances);
               renderInfo.instances[
                 renderInfo.instances.length - 1
               ].instance = instance;
@@ -384,17 +382,14 @@ export async function* renderTemplateResult(
           if (isElement(node)) {
             renderInfo.instances.push({tagName: node.tagName});
           }
-          console.log('pre', node.nodeName);
         },
         post(node: DefaultTreeNode, _parent: DefaultTreeNode) {
           if (isElement(node)) {
             renderInfo.instances.pop();
           }
-          console.log('post', node.nodeName);
         },
       });
       for (const child of depthFirst(node)) {
-        console.log('depthFirst', child.nodeName);
         yield* handleNode(child);
       }
     }
