@@ -2,7 +2,8 @@
  * This is a client-only file used to boot the page.
  */
 
-import {render, hydrate} from 'lit-html';
+import {render} from 'lit-html';
+import {hydrate} from 'lit-html/lib/hydrate.js';
 import {template} from './module.js';
 
 declare var window: any;
