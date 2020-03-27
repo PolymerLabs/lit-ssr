@@ -19,7 +19,7 @@ import {URL} from 'url';
 import * as path from 'path';
 
 import {renderModule} from '../lib/render-module.js';
-import {AsyncIterableReader} from '../lib/async-iterator-readable.js';
+import {AsyncIterableReader} from '../lib/util/async-iterator-readable.js';
 
 const {nodeResolve} = koaNodeResolve;
 

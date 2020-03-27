@@ -1,6 +1,6 @@
 /// <reference lib="dom" />
 
-import {RenderInfo} from './render.js';
+import {RenderInfo} from './render-lit-html.js';
 
 /**
  * @license

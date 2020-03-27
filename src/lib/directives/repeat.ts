@@ -1,4 +1,4 @@
-import { renderValue, RenderInfo } from '../render.js';
+import { renderValue, RenderInfo } from '../render-lit-html.js';
 import { ChildRenderer } from '../element-renderer.js';
 
 export type RepeatPreRenderer = (childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo) => AsyncIterableIterator<string>;

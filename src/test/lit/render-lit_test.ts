@@ -13,8 +13,8 @@
  */
 
 import module from 'module';
-import {importModule} from '../lib/import-module.js';
-import {window} from '../lib/dom-shim.js';
+import {importModule} from '../../lib/import-module.js';
+import {window} from '../../lib/dom-shim.js';
 // type-only import
 import * as tapelib from 'tape';
 
@@ -34,7 +34,7 @@ const test = tapePromise(tape);
  * cases.
  */
 const appModuleImport = importModule(
-  './test-files/render-test-module.js',
+  '../test-files/render-test-module.js',
   import.meta.url,
   window
 );

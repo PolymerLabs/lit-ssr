@@ -31,7 +31,7 @@ import {
   isElement,
   getAttr,
   isTextNode,
-} from './parse5-utils.js';
+} from './util/parse5-utils.js';
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {
@@ -45,7 +45,7 @@ import {
   ClassMapPreRenderer,
 } from './directives/class-map.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
-import {isRenderLightDirective} from './render-light.js';
+import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 
 const traverse = require('parse5-traverse');
 

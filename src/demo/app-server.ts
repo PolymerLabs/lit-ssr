@@ -2,7 +2,7 @@
  * This is a server-old module that renders the HTML file shell.
  */
 
-import {render, getScopedStyles} from '../lib/render.js';
+import {render, getScopedStyles} from '../lib/render-lit-html.js';
 import {template} from './module.js';
 
 // This module runs in the app context with the client-side code, but is a
