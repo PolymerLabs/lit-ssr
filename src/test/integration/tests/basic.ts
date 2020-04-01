@@ -39,12 +39,12 @@ export const tests = {
     expectations: [
       {
         args: ['TEST'],
-        html: '<div __lit-attr="1" class="TEST"></div>'
+        html: '<div class="TEST"></div>'
       },
       // Attribute hydration not working yet
       // {
-      //   data: ['TEST2'],
-      //   html: '<div __lit-attr="1" class="TEST2"></div>'
+      //   args: ['TEST2'],
+      //   html: '<div class="TEST2"></div>'
       // }
     ],
     stableSelectors: ['div'],

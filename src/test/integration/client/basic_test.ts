@@ -38,21 +38,25 @@ suite('basic', () => {
       // The first expectation args are used in the server render. Check the DOM
       // pre-hydration to make sure they're correct. The DOM is chaned again
       // against the first expectation after hydration in the loop below.
-      assert.lightDom.equal(container, expectations[0].html);
+      (assert.lightDom.equal as any)(container, expectations[0].html, {
+        ignoreAttributes: ['__lit-attr']
+      });
       const stableNodes = stableSelectors.map(
           (selector) => container.querySelector(selector));
 
       let i = 0;
-      for (const {args: data, html} of expectations) {
+      for (const {args, html} of expectations) {
         if (i === 0) {
-          hydrate(testRender(...data), container);
+          hydrate(testRender(...args), container);
           // TODO: assert no DOM mutations
         } else {
-          render(testRender(...data), container);
+          render(testRender(...args), container);
         }
 
         // Check the markup
-        (assert.lightDom.equal as any)(container, html);
+        (assert.lightDom.equal as any)(container, html, {
+          ignoreAttributes: ['__lit-attr']
+        });
 
         // Check that stable nodes didn't change
         const checkNodes = stableSelectors.map(
