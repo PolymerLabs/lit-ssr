@@ -109,7 +109,7 @@ test('attribute expression with string value', async (t: Test) => {
   // TODO: test for the marker comment for attribute binding
   t.equal(
     result,
-    `<!--lit-part FAR9hgjJqTI=--><div class="foo" __lit-attr="1"></div><!--/lit-part-->`
+    `<!--lit-part FAR9hgjJqTI=--><div class="foo"><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -121,7 +121,7 @@ test('multiple attribute expressions with string value', async (t: Test) => {
   // Has marker attribute for number of bound attributes.
   t.equal(
     result,
-    `<!--lit-part FQlA2/EioQk=--><div x="foo" y="bar" __lit-attr="2" z="not-dynamic"></div><!--/lit-part-->`
+    `<!--lit-part FQlA2/EioQk=--><div x="foo" y="bar" z="not-dynamic"><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -132,7 +132,7 @@ test('attribute expression with multiple bindings', async (t: Test) => {
   );
   t.equal(
     result,
-    `<!--lit-part D+PQMst9obo=--><div test="a foo b bar c" __lit-attr="1"></div><!--/lit-part-->`
+    `<!--lit-part D+PQMst9obo=--><div test="a foo b bar c"><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -143,7 +143,7 @@ test('HTMLInputElement.value', async (t: Test) => {
   const result = await render(inputTemplateWithValueProperty('foo'));
   t.equal(
     result,
-    `<!--lit-part AxWziS+Adpk=--><input value="foo" __lit-attr="1"><!--/lit-part-->`
+    `<!--lit-part AxWziS+Adpk=--><input value="foo"><!--lit-bindings 0--><!--/lit-part-->`
   );
 });
 
@@ -152,7 +152,7 @@ test('HTMLElement.className', async (t: Test) => {
   const result = await render(elementTemplateWithClassNameProperty('foo'));
   t.equal(
     result,
-    `<!--lit-part I7NxrdZ/Zxo=--><div class="foo" __lit-attr="1"></div><!--/lit-part-->`
+    `<!--lit-part I7NxrdZ/Zxo=--><div class="foo"><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -161,7 +161,7 @@ test('HTMLElement.classname does not reflect', async (t: Test) => {
   const result = await render(elementTemplateWithClassnameProperty('foo'));
   t.equal(
     result,
-    `<!--lit-part I7NxrbZzZGA=--><div  __lit-attr="1"></div><!--/lit-part-->`
+    `<!--lit-part I7NxrbZzZGA=--><div ><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -170,7 +170,7 @@ test('HTMLElement.id', async (t: Test) => {
   const result = await render(elementTemplateWithIDProperty('foo'));
   t.equal(
     result,
-    `<!--lit-part IgnmhhM3LsA=--><div id="foo" __lit-attr="1"></div><!--/lit-part-->`
+    `<!--lit-part IgnmhhM3LsA=--><div id="foo"><!--lit-bindings 0--></div><!--/lit-part-->`
   );
 });
 
@@ -202,7 +202,7 @@ test('element with property', async (t: Test) => {
   // TODO: we'd like to remove the extra space in the start tag
   t.equal(
     result,
-    `<!--lit-part v2CxGIW+qHI=--><test-property  __lit-attr="1"><shadow-root><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></shadow-root></test-property><!--/lit-part-->`
+    `<!--lit-part v2CxGIW+qHI=--><test-property ><!--lit-bindings 0--><shadow-root><!--lit-part UNbWrd8S5FY=--><main><!--lit-part-->bar<!--/lit-part--></main><!--/lit-part--></shadow-root></test-property><!--/lit-part-->`
   );
 });
 
@@ -340,7 +340,7 @@ test('dynamic slot', async (t: Test) => {
   const result = await renderFlattened(dynamicSlot(true));
   t.equal(
     result,
-    `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`
+    `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-bindings 0--><!--lit-part BRUAAAUVAAA=--><!--lit-part Pz0gobCCM4E=--><p>Hi</p><!--/lit-part--><!--/lit-part--></test-dynamic-slot><!--/lit-part-->`
   );
 });
 
@@ -351,7 +351,7 @@ test('dynamic slot, unrendered', async (t: Test) => {
   // (<p>Hi</p> should be hidden somehow)
   t.equal(
     result,
-    `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot  __lit-attr="1"><!--lit-part BRUAAAUVAAA=--><!--lit-part--><!--/lit-part--><!--/lit-part--><p>Hi</p></test-dynamic-slot><!--/lit-part-->`
+    `<!--lit-part UB+QgozkbOc=--><test-dynamic-slot ><!--lit-bindings 0--><!--lit-part BRUAAAUVAAA=--><!--lit-part--><!--/lit-part--><!--/lit-part--><p>Hi</p></test-dynamic-slot><!--/lit-part-->`
   );
 });
 
@@ -415,15 +415,15 @@ test('simple class-map directive', async (t: Test) => {
   const result = await render(classMapDirective);
   t.equal(
     result,
-    '<!--lit-part PkF/hiJU4II=--><div class="a c" __lit-attr="1"></div><!--/lit-part-->'
+    '<!--lit-part PkF/hiJU4II=--><div class="a c"><!--lit-bindings 0--></div><!--/lit-part-->'
   );
 });
 
-test('class-map directive with other bindings', async (t: Test) => {
+test.skip('class-map directive with other bindings', async (t: Test) => {
   const {render, classMapDirectiveMultiBinding} = await setup();
   const result = await render(classMapDirectiveMultiBinding);
   t.equal(
     result,
-    '<!--lit-part pNgepkKFbd0=--><div class="z hi a c" __lit-attr="1"></div><!--/lit-part-->'
+    '<!--lit-part pNgepkKFbd0=--><div class="z hi a c"><!--lit-bindings 0--></div><!--/lit-part-->'
   );
 });

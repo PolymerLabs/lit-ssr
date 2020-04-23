@@ -13,9 +13,12 @@
  */
 
 import {html} from 'lit-html';
+import {repeat} from 'lit-html/directives/repeat.js';
+
 import { SSRTest } from './ssr-test';
 
-export const tests = {
+export const tests: {[name: string] : SSRTest} = {
+
   'textExpression': {
     render(x: any) {
       return html`<div>${x}</div>`;
@@ -32,6 +35,42 @@ export const tests = {
     ],
     stableSelectors: ['div'],
   },
+
+
+  'twoTextExpression': {
+    render(x: any, y: any) {
+      return html`<div>${x}${y}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div>A\n  B</div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div>C\n  D</div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'nested templates': {
+    render(x: any, y: any) {
+      return html`<div>${x}${html`<span>${y}</span>`}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div>A\n  <span>B</span></div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div>C\n  <span>D</span></div>'
+      }
+    ],
+    stableSelectors: ['div', 'span'],
+  },
+
   'attributeExpression': {
     render(x: any) {
       return html`<div class=${x}></div>`;
@@ -42,11 +81,49 @@ export const tests = {
         html: '<div class="TEST"></div>'
       },
       // Attribute hydration not working yet
-      // {
-      //   args: ['TEST2'],
-      //   html: '<div class="TEST2"></div>'
-      // }
+      {
+        args: ['TEST2'],
+        html: '<div class="TEST2"></div>'
+      }
     ],
     stableSelectors: ['div'],
-  }
-} as {[name: string] : SSRTest};
+  },
+
+  'repeat with strings': {
+    skip: true,
+    render(words: string[]) {
+      return html`${repeat(words, (word, i) => `(${i} ${word})`)}`;
+    },
+    expectations: [
+      {
+        args: [['foo', 'bar', 'qux']],
+        html: '(0 foo)\n(1 bar)\n(2 qux)'
+      },
+      // Attribute hydration not working yet
+      {
+        args: [['A', 'B', 'C']],
+        html: '(0 A)(1 B)(2 C)'
+      }
+    ],
+    stableSelectors: [],
+  },
+
+  'repeat with templates': {
+    skip: true,
+    render(words: string[]) {
+      return html`${repeat(words, (word, i) => html`<p>${i}) ${word}</p>`)}`;
+    },
+    expectations: [
+      {
+        args: [['foo', 'bar', 'qux']],
+        html: '<p>0) foo</p><p>1) bar</p><p>2) qux</p>'
+      },
+      // Attribute hydration not working yet
+      {
+        args: [['A', 'B', 'C']],
+        html: '<p>0) A</p><p>1) B</p><p>2) C</p>'
+      }
+    ],
+    stableSelectors: ['p'],
+  },
+};

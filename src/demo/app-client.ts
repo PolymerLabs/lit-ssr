@@ -14,8 +14,7 @@ console.log('hydrating');
 // so that future renders() will do the minimal DOM updates.
 hydrate(
   template('SSR', 'This is a test.', ['foo', 'bar', 'qux']),
-  window.document.body,
-  {dataChanged: false}
+  window.document.body
 );
 
 window.setTimeout(() => {
