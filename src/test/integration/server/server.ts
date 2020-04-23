@@ -41,6 +41,15 @@ export const startServer = async (port = 9090) => {
 
     const test = module.tests[testName] as SSRTest;
     const {render} = module;
+    // For debugging:
+    if (false) {
+      const result = render(test.render(...test.expectations[0].args), undefined);
+      let s = '';
+      for await (const chunk of result) {
+        s += chunk;
+      }
+      console.log('result', s);
+    }
     const result = render(test.render(...test.expectations[0].args), undefined);
     context.type = 'text/html';
     context.body = new AsyncIterableReader(result);

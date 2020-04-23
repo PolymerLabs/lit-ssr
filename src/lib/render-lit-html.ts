@@ -19,6 +19,8 @@ import {
   marker,
   markerRegex,
   lastAttributeNameRegex,
+  TemplatePart,
+  boundAttributeSuffix,
 } from 'lit-html/lib/template.js';
 
 // types only
@@ -51,7 +53,7 @@ const traverse = require('parse5-traverse');
 
 const templateCache = new Map<
   TemplateStringsArray,
-  {html: string; ast: DefaultTreeDocumentFragment}
+  {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
 >();
 
 const getTemplate = (result: TemplateResult) => {
@@ -63,8 +65,41 @@ const getTemplate = (result: TemplateResult) => {
   const ast = parseFragment(html, {
     sourceCodeLocationInfo: true,
   }) as DefaultTreeDocumentFragment;
-  templateCache.set(result.strings, {html, ast});
-  return {html, ast};
+  const parts: Array<TemplatePart> = [];
+
+  // Initialized to -1 so that the first child node is index 0, to match
+  // client-side lit-html.
+  let index = -1;
+  for (const node of depthFirst(ast)) {
+    if (isCommentNode(node)) {
+      if (node.data === marker) {
+        parts.push({
+          type: 'node',
+          index,
+        });
+      }
+    } else if (isElement(node) && node.attrs.length > 0) {
+      for (const attr of node.attrs) {
+        if (attr.name.endsWith(boundAttributeSuffix)) {
+          const name = attr.name.substring(
+            0,
+            attr.name.length - boundAttributeSuffix.length
+          );
+          const strings = attr.value.split(markerRegex);
+          parts.push({
+            type: 'attribute',
+            index,
+            name,
+            strings,
+          });
+        }
+      }
+    }
+    index++;
+  }
+  const t = {html, ast, parts};
+  templateCache.set(result.strings, t);
+  return t;
 };
 
 const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
@@ -179,10 +214,16 @@ export async function* renderTemplateResult(
   // elements. For each we will record the offset of the node, and output the
   // previous span of HTML.
 
-  const {html, ast} = getTemplate(result);
+  const {html, ast, parts: templateParts} = getTemplate(result);
 
   /* The next value in result.values to render */
   let partIndex = 0;
+
+  /* 
+    The the template part index, which is different from the part index as
+    multiple-binding attribute expressions are combined into one template part.
+   */
+  let templatePartIndex = -1;
 
   /* The index of the last distributed value to be rendered to a slot */
   let distributedIndex = -1;
@@ -190,6 +231,10 @@ export async function* renderTemplateResult(
   /* The last offset of html written to the stream */
   let lastOffset: number | undefined = 0;
 
+  /**
+   * Returns a substring of the html from the `lastOffset` flushed to `offset`
+   * ready for yielding to the renderTemplateResult iterable.
+   */
   const flushTo = (offset?: number) => {
     if (lastOffset === undefined) {
       throw new Error('lastOffset is undefined');
@@ -199,7 +244,21 @@ export async function* renderTemplateResult(
     return html.substring(previousLastOffset, offset);
   };
 
+  /**
+   * Sets `lastOffset` to `offset`, skipping a range of characters. This is
+   * useful for skipping <slot>s and distributed nodes in flattened mode, or
+   * skipping and re-writting lit-html marker nodes.
+   */
   const skipTo = (offset: number) => {
+    if (lastOffset === undefined) {
+      throw new Error('lastOffset is undefined');
+    }
+    if (offset < lastOffset) {
+      throw new Error(`offset must be greater than lastOffset.
+        offset: ${offset}
+        lastOffset: ${lastOffset}
+      `);
+    }
     lastOffset = offset;
   };
 
@@ -209,6 +268,7 @@ export async function* renderTemplateResult(
         yield flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
+        templatePartIndex++;
 
         if (partIndex <= distributedIndex) {
           // This means we've already consumed this part during distribution
@@ -228,6 +288,10 @@ export async function* renderTemplateResult(
     } else if (isElement(node)) {
       // If the element is custom, this will be the instantiated class
       let instance: LitElement | undefined = undefined;
+
+      // Whether to flush the start tag. This is neccessary if we're changing
+      // any of the attributes in the tag, so it's true for custom-elements
+      // which might reflect their own state, or any element with a binding.
       let writeTag = false;
 
       if (claimedNodes.has(node)) {
@@ -286,6 +350,8 @@ export async function* renderTemplateResult(
               const propertyName = lastAttributeNameRegex
                 .exec(result.strings[partIndex])![2]
                 .slice(1);
+              // TODO: this only handles one expression, combine with attribute
+              // handling to handle multiple expressions
               const value = result.values[partIndex++];
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
@@ -315,15 +381,17 @@ export async function* renderTemplateResult(
             }
             skipTo(attrEndOffset);
             boundAttrsCount += 1;
+            templatePartIndex++;
           }
         }
-        if (boundAttrsCount > 0) {
-          // TODO: Can we add the leading space a different way?
-          yield ` __lit-attr="${boundAttrsCount}"`;
+
+        if (writeTag || boundAttrsCount > 0) {
+          yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
         }
 
-        if (writeTag) {
-          yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
+        if (boundAttrsCount > 0) {
+          const templatePart = templateParts[templatePartIndex];
+          yield `<!--lit-bindings ${templatePart.index}-->`;
         }
 
         if (instance !== undefined) {

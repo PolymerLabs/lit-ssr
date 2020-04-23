@@ -23,10 +23,7 @@ export interface SSRTest {
     /**
      * The expected HTML string.
      *
-     * Does not need to contain lit-html marker comments, but currently _does_
-     * need to contain the SSR marker attributes (__lit-attr) because of an
-     * apparent bug in @open-wc/semantic-dom-diff:
-     * https://github.com/open-wc/open-wc/issues/1476
+     * Does not need to contain lit-html marker comments.
      */
     html: string;
   }>;
@@ -35,5 +32,6 @@ export interface SSRTest {
    * Used to assert that the DOM reused in hydration, not recreated.
    */
   stableSelectors: Array<string>;
+  skip?: boolean;
+  only?: boolean;
 }
-
