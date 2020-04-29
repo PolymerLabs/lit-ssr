@@ -80,10 +80,43 @@ export const tests: {[name: string] : SSRTest} = {
         args: ['TEST'],
         html: '<div class="TEST"></div>'
       },
-      // Attribute hydration not working yet
       {
         args: ['TEST2'],
         html: '<div class="TEST2"></div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'two attribute expressions': {
+    render(x: any, y: any) {
+      return html`<div class=${x} foo=${y}></div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div class="A" foo="B"></div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div class="C" foo="D"></div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'two expressions in same attribute': {
+    render(x: any, y: any) {
+      return html`<div class="${x} ${y}"></div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div class="A B"></div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div class="C D"></div>'
       }
     ],
     stableSelectors: ['div'],
