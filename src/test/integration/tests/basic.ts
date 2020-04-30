@@ -194,6 +194,76 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
 
+  'array with strings': {
+    render(words: string[]) {
+      return html`<div>${words}</div>`;
+    },
+    expectations: [
+      {
+        args: [['A', 'B', 'C']],
+        html: '<div>A\n  B\n  C</div>'
+      },
+      {
+        args: [['D', 'E', 'F']],
+        html: '<div>D\n  E\n  F</div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'array with strings, updated with fewer items': {
+    render(words: string[]) {
+     return html`<div>${words}</div>`;
+    },
+    expectations: [
+      {
+        args: [['A', 'B', 'C']],
+        html: '<div>A\n  B\n  C</div>'
+      },
+      // Attribute hydration not working yet
+      {
+        args: [['D', 'E']],
+        html: '<div>D\n  E</div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'array with strings, updated with more items': {
+    render(words: string[]) {
+      return html`<div>${words}</div>`;
+    },
+    expectations: [
+      {
+        args: [['A', 'B', 'C']],
+        html: '<div>A\n  B\n  C</div>'
+      },
+      // Attribute hydration not working yet
+      {
+        args: [['D', 'E', 'F', 'G']],
+        html: '<div>D\n  E\n  F\n  G</div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'array with templates': {
+    render(words: string[]) {
+      return html`<ol>${words.map((w) => html`<li>${w}</li>`)}</ol>`;
+    },
+    expectations: [
+      {
+        args: [['A', 'B', 'C']],
+        html: '<ol><li>A</li>\n  <li>B</li>\n  <li>C</li></ol>'
+      },
+      {
+        args: [['D', 'E', 'F']],
+        html: '<ol><li>D</li>\n  <li>E</li>\n  <li>F</li></ol>'
+      }
+    ],
+    stableSelectors: ['ol', 'li'],
+  },
+
   'repeat with strings': {
     skip: true,
     render(words: string[]) {
