@@ -71,7 +71,7 @@ suite('basic', () => {
       clearMutations();
 
       let i = 0;
-      for (const {args, html} of expectations) {
+      for (const {args, html, check} of expectations) {
         if (i === 0) {
           hydrate(testRender(...args), container);
           // Hydration should cause no DOM mutations, because it does not
@@ -95,6 +95,11 @@ suite('basic', () => {
         const checkNodes = stableSelectors.map(
             (selector) => container.querySelector(selector));
         assert.deepEqual(stableNodes, checkNodes);
+
+        // Custom check
+        if (check !== undefined) {
+          check(assert, container);
+        }
         i++;
       }
     });

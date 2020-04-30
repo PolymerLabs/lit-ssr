@@ -122,6 +122,78 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'property expression': {
+    render(x: any) {
+      return html`<div .foo=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [1],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+        }
+      },
+      {
+        args: [2],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, 2);
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'two property expression': {
+    render(x: any, y: any) {
+      return html`<div .foo=${x} .bar=${y}></div>`;
+    },
+    expectations: [
+      {
+        args: [1, true],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+          assert.strictEqual((dom.querySelector('div') as any).bar, true);
+        }
+      },
+      {
+        args: [2, false],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, 2);
+          assert.strictEqual((dom.querySelector('div') as any).bar, false);
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'two expressions in one property': {
+    render(x: any, y: any) {
+      return html`<div .foo="${x},${y}"></div>`;
+    },
+    expectations: [
+      {
+        args: [1, true],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, '1,true');
+        }
+      },
+      {
+        args: [2, false],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).foo, '2,false');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+
   'repeat with strings': {
     skip: true,
     render(words: string[]) {

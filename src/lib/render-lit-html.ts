@@ -347,12 +347,25 @@ export async function* renderTemplateResult(
             yield html.substring(lastOffset!, attrNameStartOffset);
 
             if (attr.name.startsWith('.')) {
-              const propertyName = lastAttributeNameRegex
-                .exec(result.strings[partIndex])![2]
-                .slice(1);
-              // TODO: this only handles one expression, combine with attribute
-              // handling to handle multiple expressions
-              const value = result.values[partIndex++];
+              // Property binding
+              const propertyName = attr.name.substring(1, attr.name.length - 5);
+
+              const statics = attr.value.split(markerRegex);
+              let value: unknown;
+              if (statics.length === 2) {
+                // Single-expression property binding
+                value = result.values[partIndex++];
+              } else {
+                // Multi-expression property binding
+                value = attr.value.replace(globalMarkerRegex, () => {
+                  const value = result.values[partIndex++];
+                  if (isClassMapDirective(value)) {
+                    return (value as ClassMapPreRenderer)();
+                  } else {
+                    return String(value);
+                  }
+                });
+              }
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
               }
