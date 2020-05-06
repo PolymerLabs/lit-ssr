@@ -122,6 +122,23 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'mix of expressions across multiple attributes': {
+    render(a: any, b: any, c: any, d: any, e: any, f: any) {
+      return html`<div ab="${a} ${b}" x c="${c}" y de="${d} ${e}" f="${f}" z></div>`;
+    },
+    expectations: [
+      {
+        args: ['a', 'b', 'c', 'd', 'e', 'f'],
+        html: '<div ab="a b" x c="c" y de="d e" f="f" z></div>'
+      },
+      {
+        args: ['A', 'B', 'C', 'D', 'E', 'F'],
+        html: '<div ab="A B" x c="C" y de="D E" f="F" z></div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
   'repeat with strings': {
     skip: true,
     render(words: string[]) {
