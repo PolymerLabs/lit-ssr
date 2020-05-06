@@ -67,15 +67,15 @@ const getTemplate = (result: TemplateResult) => {
   }) as DefaultTreeDocumentFragment;
   const parts: Array<TemplatePart> = [];
 
-  // Initialized to -1 so that the first child node is index 0, to match
-  // client-side lit-html.
-  let index = -1;
+  // Depth-first node index. Initialized to -1 so that the first child node is
+  // index 0, to match client-side lit-html.
+  let nodeIndex = -1;
   for (const node of depthFirst(ast)) {
     if (isCommentNode(node)) {
       if (node.data === marker) {
         parts.push({
           type: 'node',
-          index,
+          index: nodeIndex,
         });
       }
     } else if (isElement(node) && node.attrs.length > 0) {
@@ -88,14 +88,14 @@ const getTemplate = (result: TemplateResult) => {
           const strings = attr.value.split(markerRegex);
           parts.push({
             type: 'attribute',
-            index,
+            index: nodeIndex,
             name,
             strings,
           });
         }
       }
     }
-    index++;
+    nodeIndex++;
   }
   const t = {html, ast, parts};
   templateCache.set(result.strings, t);
@@ -391,6 +391,8 @@ export async function* renderTemplateResult(
 
         if (boundAttrsCount > 0) {
           const templatePart = templateParts[templatePartIndex];
+          // templatePart.index is the depth-first node index of the parent node
+          // of this comment.
           yield `<!--lit-bindings ${templatePart.index}-->`;
         }
 
