@@ -12,21 +12,16 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import module from 'module';
-import {importModule} from '../lib/import-module.js';
-import {window} from '../lib/dom-shim.js';
-// type-only import
-import * as tapelib from 'tape';
+import {createRequire} from 'module';
+import {importModule} from '../../lib/import-module.js';
+import {window} from '../../lib/dom-shim.js';
+import tape, {Test} from 'tape';
+import tapePromiseLib from 'tape-promise';
 
-const {createRequire} = module as any;
-const require = createRequire(import.meta.url);
-
-const tape = require('tape') as typeof tapelib;
-const tapePromise = require('tape-promise').default;
-
+const tapePromise = (tapePromiseLib as any).default as typeof tapePromiseLib;
 const test = tapePromise(tape);
 
-(window as any).require = require;
+(window as any).require = createRequire(import.meta.url);
 
 /**
  * Promise for importing the "app module". This is a module that implements the
@@ -34,7 +29,7 @@ const test = tapePromise(tape);
  * cases.
  */
 const appModuleImport = importModule(
-  './test-files/render-test-module.js',
+  '../test-files/render-test-module.js',
   import.meta.url,
   window
 );
@@ -70,7 +65,7 @@ const setup = async () => {
   };
 };
 
-test('simple TemplateResult', async (t: tapelib.Test) => {
+test('simple TemplateResult', async (t: Test) => {
   const {render, simpleTemplateResult} = await setup();
   const digest = simpleTemplateResult.digest;
   const result = await render(simpleTemplateResult);
@@ -79,7 +74,7 @@ test('simple TemplateResult', async (t: tapelib.Test) => {
 
 /* Text Expressions */
 
-test('text expression with string value', async (t: tapelib.Test) => {
+test('text expression with string value', async (t: Test) => {
   const {render, templateWithTextExpression} = await setup();
   const result = await render(templateWithTextExpression('foo'));
   t.equal(
@@ -88,7 +83,7 @@ test('text expression with string value', async (t: tapelib.Test) => {
   );
 });
 
-test('text expression with undefined value', async (t: tapelib.Test) => {
+test('text expression with undefined value', async (t: Test) => {
   const {render, templateWithTextExpression} = await setup();
   const result = await render(templateWithTextExpression(undefined));
   t.equal(
@@ -97,7 +92,7 @@ test('text expression with undefined value', async (t: tapelib.Test) => {
   );
 });
 
-test('text expression with null value', async (t: tapelib.Test) => {
+test('text expression with null value', async (t: Test) => {
   const {render, templateWithTextExpression} = await setup();
   const result = await render(templateWithTextExpression(null));
   t.equal(
@@ -108,7 +103,7 @@ test('text expression with null value', async (t: tapelib.Test) => {
 
 /* Attribute Expressions */
 
-test('attribute expression with string value', async (t: tapelib.Test) => {
+test('attribute expression with string value', async (t: Test) => {
   const {render, templateWithAttributeExpression} = await setup();
   const result = await render(templateWithAttributeExpression('foo'));
   // TODO: test for the marker comment for attribute binding
@@ -118,7 +113,7 @@ test('attribute expression with string value', async (t: tapelib.Test) => {
   );
 });
 
-test('multiple attribute expressions with string value', async (t: tapelib.Test) => {
+test('multiple attribute expressions with string value', async (t: Test) => {
   const {render, templateWithMultipleAttributeExpressions} = await setup();
   const result = await render(
     templateWithMultipleAttributeExpressions('foo', 'bar')
@@ -130,7 +125,7 @@ test('multiple attribute expressions with string value', async (t: tapelib.Test)
   );
 });
 
-test('attribute expression with multiple bindings', async (t: tapelib.Test) => {
+test('attribute expression with multiple bindings', async (t: Test) => {
   const {render, templateWithMultiBindingAttributeExpression} = await setup();
   const result = await render(
     templateWithMultiBindingAttributeExpression('foo', 'bar')
@@ -143,7 +138,7 @@ test('attribute expression with multiple bindings', async (t: tapelib.Test) => {
 
 /* Reflected property Expressions */
 
-test('HTMLInputElement.value', async (t: tapelib.Test) => {
+test('HTMLInputElement.value', async (t: Test) => {
   const {render, inputTemplateWithValueProperty} = await setup();
   const result = await render(inputTemplateWithValueProperty('foo'));
   t.equal(
@@ -152,7 +147,7 @@ test('HTMLInputElement.value', async (t: tapelib.Test) => {
   );
 });
 
-test('HTMLElement.className', async (t: tapelib.Test) => {
+test('HTMLElement.className', async (t: Test) => {
   const {render, elementTemplateWithClassNameProperty} = await setup();
   const result = await render(elementTemplateWithClassNameProperty('foo'));
   t.equal(
@@ -161,7 +156,7 @@ test('HTMLElement.className', async (t: tapelib.Test) => {
   );
 });
 
-test('HTMLElement.classname does not reflect', async (t: tapelib.Test) => {
+test('HTMLElement.classname does not reflect', async (t: Test) => {
   const {render, elementTemplateWithClassnameProperty} = await setup();
   const result = await render(elementTemplateWithClassnameProperty('foo'));
   t.equal(
@@ -170,7 +165,7 @@ test('HTMLElement.classname does not reflect', async (t: tapelib.Test) => {
   );
 });
 
-test('HTMLElement.id', async (t: tapelib.Test) => {
+test('HTMLElement.id', async (t: Test) => {
   const {render, elementTemplateWithIDProperty} = await setup();
   const result = await render(elementTemplateWithIDProperty('foo'));
   t.equal(
@@ -181,7 +176,7 @@ test('HTMLElement.id', async (t: tapelib.Test) => {
 
 /* Nested Templates */
 
-test('nested template', async (t: tapelib.Test) => {
+test('nested template', async (t: Test) => {
   const {render, nestedTemplate} = await setup();
   const result = await render(nestedTemplate);
   t.equal(
@@ -192,7 +187,7 @@ test('nested template', async (t: tapelib.Test) => {
 
 /* Custom Elements */
 
-test('simple custom element', async (t: tapelib.Test) => {
+test('simple custom element', async (t: Test) => {
   const {render, simpleTemplateWithElement} = await setup();
   const result = await render(simpleTemplateWithElement);
   t.equal(
@@ -201,7 +196,7 @@ test('simple custom element', async (t: tapelib.Test) => {
   );
 });
 
-test('element with property', async (t: tapelib.Test) => {
+test('element with property', async (t: Test) => {
   const {render, elementWithProperty} = await setup();
   const result = await render(elementWithProperty);
   // TODO: we'd like to remove the extra space in the start tag
@@ -215,7 +210,7 @@ test('element with property', async (t: tapelib.Test) => {
 
 /* Declarative Shadow Root */
 
-test('no slot', async (t: tapelib.Test) => {
+test('no slot', async (t: Test) => {
   const {render, noSlot} = await setup();
   const result = await render(noSlot);
   t.equal(
@@ -226,7 +221,7 @@ test('no slot', async (t: tapelib.Test) => {
 
 /* Flattened Shadow Root */
 
-test('no slot', async (t: tapelib.Test) => {
+test('no slot', async (t: Test) => {
   const {renderFlattened, noSlot} = await setup();
   const result = await renderFlattened(noSlot);
   // TODO: this is probably a bit wrong, because we don't want to display
@@ -238,7 +233,7 @@ test('no slot', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and static child', async (t: tapelib.Test) => {
+test('slot and static child', async (t: Test) => {
   const {renderFlattened, slotWithStaticChild} = await setup();
   const result = await renderFlattened(slotWithStaticChild);
   t.equal(
@@ -247,7 +242,7 @@ test('slot and static child', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and static child, not flattened', async (t: tapelib.Test) => {
+test('slot and static child, not flattened', async (t: Test) => {
   const {render, slotWithStaticChild} = await setup();
   const result = await render(slotWithStaticChild);
   t.equal(
@@ -256,7 +251,7 @@ test('slot and static child, not flattened', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and two static children', async (t: tapelib.Test) => {
+test('slot and two static children', async (t: Test) => {
   const {renderFlattened, slotWithStaticChildren} = await setup();
   const result = await renderFlattened(slotWithStaticChildren);
   t.equal(
@@ -265,7 +260,7 @@ test('slot and two static children', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and dynamic child', async (t: tapelib.Test) => {
+test('slot and dynamic child', async (t: Test) => {
   const {renderFlattened, slotWithDynamicChild} = await setup();
   const result = await renderFlattened(slotWithDynamicChild);
   t.equal(
@@ -274,7 +269,7 @@ test('slot and dynamic child', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and dynamic child, not flattened', async (t: tapelib.Test) => {
+test('slot and dynamic child, not flattened', async (t: Test) => {
   const {render, slotWithDynamicChild} = await setup();
   const result = await render(slotWithDynamicChild);
   t.equal(
@@ -283,7 +278,7 @@ test('slot and dynamic child, not flattened', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and dynamic child and more bindings', async (t: tapelib.Test) => {
+test('slot and dynamic child and more bindings', async (t: Test) => {
   const {renderFlattened, slotWithDynamicChildAndMore} = await setup();
   const result = await renderFlattened(slotWithDynamicChildAndMore);
   t.equal(
@@ -292,7 +287,7 @@ test('slot and dynamic child and more bindings', async (t: tapelib.Test) => {
   );
 });
 
-test('slot and reused dynamic child', async (t: tapelib.Test) => {
+test('slot and reused dynamic child', async (t: Test) => {
   const {renderFlattened, slotWithReusedDynamicChild} = await setup();
   const result = await renderFlattened(slotWithReusedDynamicChild);
   t.equal(
@@ -301,7 +296,7 @@ test('slot and reused dynamic child', async (t: tapelib.Test) => {
   );
 });
 
-test('two slots and static children', async (t: tapelib.Test) => {
+test('two slots and static children', async (t: Test) => {
   const {renderFlattened, twoSlotsWithStaticChildren} = await setup();
   const result = await renderFlattened(twoSlotsWithStaticChildren);
   t.equal(
@@ -310,7 +305,7 @@ test('two slots and static children', async (t: tapelib.Test) => {
   );
 });
 
-test('two slots and static children out of order', async (t: tapelib.Test) => {
+test('two slots and static children out of order', async (t: Test) => {
   const {renderFlattened, twoSlotsWithStaticChildrenOutOfOrder} = await setup();
   const result = await renderFlattened(twoSlotsWithStaticChildrenOutOfOrder);
   t.equal(
@@ -319,7 +314,7 @@ test('two slots and static children out of order', async (t: tapelib.Test) => {
   );
 });
 
-test('two slots and dynamic children', async (t: tapelib.Test) => {
+test('two slots and dynamic children', async (t: Test) => {
   const {renderFlattened, twoSlotsWithDynamicChildren} = await setup();
   const result = await renderFlattened(twoSlotsWithDynamicChildren);
   t.equal(
@@ -328,7 +323,7 @@ test('two slots and dynamic children', async (t: tapelib.Test) => {
   );
 });
 
-test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
+test('two slots and dynamic children out of order', async (t: Test) => {
   const {
     renderFlattened,
     twoSlotsWithDynamicChildrenOutOfOrder,
@@ -340,7 +335,7 @@ test('two slots and dynamic children out of order', async (t: tapelib.Test) => {
   );
 });
 
-test('dynamic slot', async (t: tapelib.Test) => {
+test('dynamic slot', async (t: Test) => {
   const {renderFlattened, dynamicSlot} = await setup();
   const result = await renderFlattened(dynamicSlot(true));
   t.equal(
@@ -349,7 +344,7 @@ test('dynamic slot', async (t: tapelib.Test) => {
   );
 });
 
-test('dynamic slot, unrendered', async (t: tapelib.Test) => {
+test('dynamic slot, unrendered', async (t: Test) => {
   const {renderFlattened, dynamicSlot} = await setup();
   const result = await renderFlattened(dynamicSlot(false));
   // TODO: this is a bit wrong. See the comment in the "no slot" test
@@ -362,7 +357,7 @@ test('dynamic slot, unrendered', async (t: tapelib.Test) => {
 
 /* Styles */
 
-test('styles', async (t: tapelib.Test) => {
+test('styles', async (t: Test) => {
   const {getScopedStyles} = await setup();
   const styles = getScopedStyles() as string;
   t.true(styles[0].includes('test-styles'));
@@ -371,7 +366,7 @@ test('styles', async (t: tapelib.Test) => {
 
 /* Directives */
 
-test('repeat directive with a template result', async (t: tapelib.Test) => {
+test('repeat directive with a template result', async (t: Test) => {
   const {render, repeatDirectiveWithTemplateResult} = await setup();
   const result = await render(repeatDirectiveWithTemplateResult);
   t.equal(
@@ -394,7 +389,7 @@ test('repeat directive with a template result', async (t: tapelib.Test) => {
   );
 });
 
-test('repeat directive with a string', async (t: tapelib.Test) => {
+test('repeat directive with a string', async (t: Test) => {
   const {render, repeatDirectiveWithString} = await setup();
   const result = await render(repeatDirectiveWithString);
   t.equal(
@@ -415,7 +410,7 @@ test('repeat directive with a string', async (t: tapelib.Test) => {
   );
 });
 
-test('simple class-map directive', async (t: tapelib.Test) => {
+test('simple class-map directive', async (t: Test) => {
   const {render, classMapDirective} = await setup();
   const result = await render(classMapDirective);
   t.equal(
@@ -424,7 +419,7 @@ test('simple class-map directive', async (t: tapelib.Test) => {
   );
 });
 
-test('class-map directive with other bindings', async (t: tapelib.Test) => {
+test('class-map directive with other bindings', async (t: Test) => {
   const {render, classMapDirectiveMultiBinding} = await setup();
   const result = await render(classMapDirectiveMultiBinding);
   t.equal(

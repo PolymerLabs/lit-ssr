@@ -7,7 +7,7 @@
   "scripts": {
     "build": "tsc",
     "start": "node --experimental-vm-modules ./demo/server.js",
-    "test": "node --experimental-vm-modules ./test/render_test.js | tap-spec",
+    "test": "node --experimental-vm-modules ./test/all-tests.js | tap-spec",
     "format": "prettier src/**/*.ts --write"
   },
   "author": "",
@@ -18,6 +18,7 @@
     "@types/node": "^13.7.4",
     "@types/parse5": "^5.0.0",
     "@types/resolve": "^1.14.0",
+    "@types/tape-promise": "^4.0.0",
     "chai": "^4.2.0",
     "prettier": "^1.19.1",
     "tap-spec": "^5.0.0",

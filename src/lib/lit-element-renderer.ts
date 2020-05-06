@@ -14,10 +14,10 @@
 
 import {ElementRenderer, ChildRenderer} from './element-renderer.js';
 import {LitElement, TemplateResult, CSSResult} from 'lit-element';
-import {render, renderTemplateResult, RenderInfo} from './render.js';
+import {render, renderTemplateResult, RenderInfo} from './render-lit-html.js';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {Node, DefaultTreeNode} from 'parse5';
-import {isCommentNode, getAttr} from './parse5-utils.js';
+import {isCommentNode, getAttr} from './util/parse5-utils.js';
 import {marker} from 'lit-html/lib/template';
 
 export type Constructor<T> = {new (): T};
