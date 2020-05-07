@@ -18,13 +18,17 @@ import {TemplateResult, nothing} from 'lit-html';
 import {
   marker,
   markerRegex,
-  lastAttributeNameRegex,
   TemplatePart,
   boundAttributeSuffix,
 } from 'lit-html/lib/template.js';
 
 // types only
-import {Node, DefaultTreeDocumentFragment, DefaultTreeNode} from 'parse5';
+import {
+  Node,
+  DefaultTreeDocumentFragment,
+  DefaultTreeNode,
+  Attribute,
+} from 'parse5';
 
 import {
   depthFirst,
@@ -343,28 +347,25 @@ export async function* renderTemplateResult(
             ];
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
-
+            const statics = attr.value.split(markerRegex);
+            const attributeName = attr.name.substring(
+              0,
+              attr.name.length - boundAttributeSuffix.length
+            );
             yield html.substring(lastOffset!, attrNameStartOffset);
 
-            if (attr.name.startsWith('.')) {
+            if (attributeName.startsWith('.')) {
               // Property binding
-              const propertyName = attr.name.substring(1, attr.name.length - 5);
+              const propertyName = attributeName.substring(1);
 
-              const statics = attr.value.split(markerRegex);
               let value: unknown;
               if (statics.length === 2) {
                 // Single-expression property binding
                 value = result.values[partIndex++];
               } else {
                 // Multi-expression property binding
-                value = attr.value.replace(globalMarkerRegex, () => {
-                  const value = result.values[partIndex++];
-                  if (isClassMapDirective(value)) {
-                    return (value as ClassMapPreRenderer)();
-                  } else {
-                    return String(value);
-                  }
-                });
+                value = getAttrValue(attr, result, partIndex);
+                partIndex += statics.length - 1;
               }
               if (instance !== undefined) {
                 (instance as any)[propertyName] = value;
@@ -375,21 +376,11 @@ export async function* renderTemplateResult(
                 yield `${reflectedName}="${value}"`;
               }
             } else {
-              const attributeName = attr.name.substring(
-                0,
-                attr.name.length - 5
-              );
               let attributeString = `${attributeName}="`;
               // attr.value has the raw attribute value, which may contain multiple
               // bindings. Replace the markers with their resolved values.
-              attributeString += attr.value.replace(globalMarkerRegex, () => {
-                const value = result.values[partIndex++];
-                if (isClassMapDirective(value)) {
-                  return (value as ClassMapPreRenderer)();
-                } else {
-                  return String(value);
-                }
-              });
+              attributeString += getAttrValue(attr, result, partIndex);
+              partIndex += statics.length - 1;
               yield attributeString + '"';
             }
             skipTo(attrEndOffset);
@@ -488,3 +479,17 @@ export async function* renderTemplateResult(
     );
   }
 }
+
+const getAttrValue = (
+  attr: Attribute,
+  result: TemplateResult,
+  startIndex: number
+) =>
+  attr.value.replace(globalMarkerRegex, () => {
+    const value = result.values[startIndex++];
+    if (isClassMapDirective(value)) {
+      return (value as ClassMapPreRenderer)();
+    } else {
+      return String(value);
+    }
+  });
