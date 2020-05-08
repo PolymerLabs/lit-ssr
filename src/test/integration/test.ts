@@ -17,6 +17,19 @@ import testingKarma from '@open-wc/testing-karma';
 import deepmerge from 'deepmerge';
 
 import {startServer} from './server/server.js';
+import cliArgs from 'command-line-args';
+
+const options = [
+  {
+    name: 'debug',
+    type: Boolean,
+    alias: 'd',
+    description: 'Opens a Chrome window and runs karma in debug mode',
+    defaultValue: false
+  },
+];
+
+const args = cliArgs(options);
 
 const {Server} = karma;
 const {createDefaultConfig} = testingKarma;
@@ -47,6 +60,11 @@ const config: karma.ConfigOptions = deepmerge(createDefaultConfig({}), {
     preserveSymlinks: true,
   },
 } as any);
+
+if (args.debug) {
+  config.browsers = ['Chrome'];
+  config.singleRun = false;
+}
 
 (async () => {
   const ssrServer = await startServer();
