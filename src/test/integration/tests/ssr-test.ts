@@ -16,16 +16,20 @@ import { TemplateResult } from 'lit-html';
 export interface SSRTest {
   render(...args: any): TemplateResult;
   expectations: Array<{
+
     /**
      * The arguments to pass to render()
      */
     args: Array<unknown>;
+
     /**
      * The expected HTML string.
      *
      * Does not need to contain lit-html marker comments.
      */
     html: string;
+
+    check?(assert: Chai.Assert, dom: HTMLElement): void;
   }>;
   /**
    * A list of selectors of elements that should no change between renders.
