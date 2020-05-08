@@ -348,7 +348,7 @@ export async function* renderTemplateResult(
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
             const statics = attr.value.split(markerRegex);
-            const attributeName = attr.name.substring(
+            let attributeName = attr.name.substring(
               0,
               attr.name.length - boundAttributeSuffix.length
             );
@@ -381,10 +381,7 @@ export async function* renderTemplateResult(
               partIndex += statics.length - 1;
             } else if (attr.name.startsWith('?')) {
               // Boolean attribute binding
-              const attributeName = attr.name.substring(
-                1,
-                attr.name.length - 5
-              );
+              attributeName = attributeName.substring(1);
               if (
                 statics.length !== 2 ||
                 statics[0] !== '' ||
