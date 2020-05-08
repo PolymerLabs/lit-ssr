@@ -348,7 +348,7 @@ export async function* renderTemplateResult(
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
             const statics = attr.value.split(markerRegex);
-            const attributeName = attr.name.substring(
+            let attributeName = attr.name.substring(
               0,
               attr.name.length - boundAttributeSuffix.length
             );
@@ -374,6 +374,26 @@ export async function* renderTemplateResult(
               let reflectedName = reflectedAttributeName(tagName, propertyName);
               if (reflectedName !== undefined) {
                 yield `${reflectedName}="${value}"`;
+              }
+            } else if (attr.name.startsWith('@')) {
+              // Event binding
+              // do nothing with values
+              partIndex += statics.length - 1;
+            } else if (attr.name.startsWith('?')) {
+              // Boolean attribute binding
+              attributeName = attributeName.substring(1);
+              if (
+                statics.length !== 2 ||
+                statics[0] !== '' ||
+                statics[1] !== ''
+              ) {
+                throw new Error(
+                  'Boolean attributes can only contain a single expression'
+                );
+              }
+              const value = result.values[partIndex++];
+              if (value) {
+                yield attributeName;
               }
             } else {
               let attributeString = `${attributeName}="`;

@@ -193,6 +193,49 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'event binding': {
+    render(listener: (e: Event) => void) {
+      return html`<button @click=${listener}>X</button>`;
+    },
+    expectations: [
+      {
+        args: [(e: Event) => (e.target as any).__wasClicked = true],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.strictEqual((button as any).__wasClicked, true);
+        }
+      },
+      {
+        args: [(e: Event) => (e.target as any).__wasClicked2 = true],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.strictEqual((button as any).__wasClicked2, true);
+        }
+      }
+    ],
+    stableSelectors: ['button'],
+  },
+
+  'boolean attribute binding, initially true': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [false],
+        html: '<div></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
 
   'array with strings': {
     render(words: string[]) {
