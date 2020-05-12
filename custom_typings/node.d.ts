@@ -8,9 +8,12 @@ declare global {
 
 declare module 'vm' {
   class SourceTextModule {
-    url: string;
+    status: string;
+    identifier: string;
     namespace: any;
     context: any;
+    error?: any;
+    dependencySpecifiers: ReadonlyArray<string>;
 
     constructor(source: string, options: any);
 

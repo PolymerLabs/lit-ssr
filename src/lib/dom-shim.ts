@@ -37,14 +37,14 @@ class CSSStyleSheet {
 }
 
 type CustomElementRegistration = {
-  ctor: {new(): HTMLElement},
-  observedAttributes: string[],
+  ctor: {new (): HTMLElement};
+  observedAttributes: string[];
 };
 
 class CustomElementRegistry {
   __definitions = new Map<string, CustomElementRegistration>();
 
-  define(name: string, ctor: {new(): HTMLElement}) {
+  define(name: string, ctor: {new (): HTMLElement}) {
     this.__definitions.set(name, {
       ctor,
       observedAttributes: (ctor as any).observedAttributes,
@@ -59,30 +59,39 @@ class CustomElementRegistry {
 
 // btoa Polyfill from  https://github.com/MaxArt2501/base64-js/blob/master/base64.js
 // base64 character set, plus padding character (=)
-const b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+const b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
 
 const btoa = (string: string) => {
   string = String(string);
-  let bitmap, a, b, c,
-      result = "",
-      i = 0,
-      rest = string.length % 3; // To determine the final padding
+  let bitmap,
+    a,
+    b,
+    c,
+    result = '',
+    i = 0,
+    rest = string.length % 3; // To determine the final padding
 
-  for (; i < string.length;) {
-      if ((a = string.charCodeAt(i++)) > 255 ||
-          (b = string.charCodeAt(i++)) > 255 ||
-          (c = string.charCodeAt(i++)) > 255)
-          throw new TypeError("Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range.");
+  for (; i < string.length; ) {
+    if (
+      (a = string.charCodeAt(i++)) > 255 ||
+      (b = string.charCodeAt(i++)) > 255 ||
+      (c = string.charCodeAt(i++)) > 255
+    )
+      throw new TypeError(
+        "Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range."
+      );
 
-      bitmap = (a << 16) | (b << 8) | c;
-      result += b64.charAt(bitmap >> 18 & 63) + b64.charAt(bitmap >> 12 & 63) +
-          b64.charAt(bitmap >> 6 & 63) + b64.charAt(bitmap & 63);
+    bitmap = (a << 16) | (b << 8) | c;
+    result +=
+      b64.charAt((bitmap >> 18) & 63) +
+      b64.charAt((bitmap >> 12) & 63) +
+      b64.charAt((bitmap >> 6) & 63) +
+      b64.charAt(bitmap & 63);
   }
 
   // If there's need of padding, replace the last 'A's with equal signs
-  return rest ? result.slice(0, rest - 3) + "===".substring(rest) : result;
+  return rest ? result.slice(0, rest - 3) + '==='.substring(rest) : result;
 };
-
 
 export const window = {
   HTMLElement,
@@ -100,4 +109,3 @@ export const window = {
   document: { createElement: () => ({}), head: { appendChild: () => {} } },
 };
 window.window = window;
-

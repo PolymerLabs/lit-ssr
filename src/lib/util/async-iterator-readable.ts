@@ -12,13 +12,12 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import { Readable, ReadableOptions } from 'stream';
+import {Readable, ReadableOptions} from 'stream';
 
 /**
  * Converts an AsyncIterable into a Readable
  */
 export class AsyncIterableReader<T> extends Readable {
-
   private _iterator: AsyncIterator<T>;
 
   constructor(iterable: AsyncIterable<T>, opts?: ReadableOptions) {
@@ -29,7 +28,7 @@ export class AsyncIterableReader<T> extends Readable {
   async _read(_size: number) {
     try {
       const r = await this._iterator.next();
-      this.push(r.done ? null: r.value);
+      this.push(r.done ? null : r.value);
     } catch (e) {
       this.emit('error', e);
     }

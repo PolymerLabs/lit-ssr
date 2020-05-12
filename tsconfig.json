@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "target": "esnext",
+    "target": "es2019",
     "module": "esnext",
-    "lib": ["es2018"],
+    "lib": ["es2019"],
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
@@ -16,7 +16,8 @@
     "noFallthroughCasesInSwitch": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true
+    "experimentalDecorators": true,
+    "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "custom_typings/*.d.ts"],
   "exclude": []

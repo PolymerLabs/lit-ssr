@@ -13,24 +13,11 @@
  */
 
 import {html, nothing} from 'lit-html';
-import {repeat} from '../lib/directives/repeat.js';
-import {classMap} from '../lib/directives/class-map.js';
+import {repeat} from '../../lib/directives/repeat.js';
+import {classMap} from '../../lib/directives/class-map.js';
 import {LitElement, css, property, customElement} from 'lit-element';
 
-export {render, renderInternal, getScopedStyles} from '../lib/render.js';
-
-// Scratch pad...
-
-@customElement('x-foo')
-export class XFoo extends LitElement {
-  @property() x?: string = '42';
-
-  render() {
-    return html`<main>${this.x}<slot></slot></main>`;
-  }
-}
-export const workTemplate = (s: string) => html`<div><x-foo><p>woot</p></x-foo>${s}</div>`;
-
+export {render, getScopedStyles} from '../../lib/render-lit-html.js';
 
 /* Real Tests */
 
@@ -48,6 +35,12 @@ export const templateWithAttributeExpression = (x: any) => html`<div class=${x}>
 export const templateWithMultipleAttributeExpressions = (x: any, y: any) => html`<div x=${x} y=${y} z="not-dynamic"></div>`
 export const templateWithMultiBindingAttributeExpression = (x: string, y: string) => html`<div test="a ${x} b ${y} c"></div>`;
 
+/* Reflected Property Expressions */
+
+export const inputTemplateWithValueProperty = (x: any) => html`<input .value=${x}>`;
+export const elementTemplateWithClassNameProperty = (x: any) => html`<div .className=${x}></div>`;
+export const elementTemplateWithClassnameProperty = (x: any) => html`<div .classname=${x}></div>`;
+export const elementTemplateWithIDProperty = (x: any) => html`<div .id=${x}></div>`;
 
 /* Nested Templates */
 
@@ -117,7 +110,7 @@ export const twoSlotsWithDynamicChildrenOutOfOrder = html`<test-two-slots>${html
 
 @customElement('test-dynamic-slot')
 export class TestDynamicSlot extends LitElement {
-  @property() renderSlot = true;
+  @property({type: Boolean}) renderSlot = true;
   render() {
     return html`${this.renderSlot ? html`<slot></slot>` : nothing}`;
   }
@@ -136,7 +129,9 @@ export class TestStyles extends LitElement {
 
 /* Directives */
 
-export const repeatDirective = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
+export const repeatDirectiveWithTemplateResult = html`<div>${repeat(['foo', 'bar', 'qux'], (name: string, i: number) => html`<p>${i}) ${name}</p>`)}</div>`;
+
+export const repeatDirectiveWithString = html`${repeat(['foo', 'bar', 'qux'], (name: string) => name)}`;
 
 export const classMapDirective = html`<div class="${classMap({a: true, b: false, c: true})}"></div>`;
 
