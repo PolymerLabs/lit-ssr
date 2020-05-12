@@ -17,6 +17,7 @@
   "license": "BSD-3-Clause",
   "repository": "PolymerLabs/lit-ssr",
   "devDependencies": {
+    "@types/command-line-args": "^5.0.0",
     "@koa/router": "^8.0.8",
     "@open-wc/testing": "^2.5.8",
     "@open-wc/testing-karma": "^3.3.10",
@@ -29,6 +30,7 @@
     "@types/resolve": "^1.14.0",
     "@types/tape-promise": "^4.0.0",
     "chai": "^4.2.0",
+    "command-line-args": "^5.1.1",
     "deepmerge": "^4.2.2",
     "karma": "^4.4.1",
     "karma-chai": "^0.1.0",

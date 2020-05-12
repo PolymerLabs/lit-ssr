@@ -34,7 +34,6 @@ export const startServer = async (port = 9090) => {
   router.get('/test/:suite/:test', async (context) => {
     const suiteName = context.params.suite;
     const testName = context.params.test;
-    console.debug('TEST', suiteName, testName);
 
     const {namespace} = await importModule(`../tests/${suiteName}-ssr.js`, import.meta.url, window);
     const module = namespace as typeof testModule;
