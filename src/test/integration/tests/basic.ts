@@ -27,6 +27,12 @@ const testFunction = () => 'test function';
 
 export const tests: {[name: string] : SSRTest} = {
 
+  // TODO: add suites (for now, delineating with comments)
+
+  /******************************************************
+   * NodePart tests
+   ******************************************************/
+
   'NodePart accepts a string': {
     render(x: any) {
       return html`<div>${x}</div>`;
@@ -220,20 +226,127 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'NodePart accepts an element': {
-    // document.createElement is not shimmed in the server environment
-    skip: true,
+  'NodePart accepts TemplateResult': {
     render(x: any) {
-      return html`<div>${x}</div>`;
+      return html`<div>${html`<span>${x}</span>`}</div>`;
     },
     expectations: [
       {
-        args: [/*document.createElement('span')*/],
-        html: '<div><span></span></div>'
+        args: ['A'],
+        html: '<div><span>A</span></div>'
       },
       {
-        args: [/*document.createElement('section')*/],
-        html: '<div><section></section></div>'
+        args: ['B'],
+        html: '<div><span>B</span></div>'
+      }
+    ],
+    stableSelectors: ['div', 'span'],
+  },
+
+  'multiple NodeParts, adjacent primitive values': {
+    render(x: any, y: any) {
+      return html`<div>${x}${y}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div>A\n  B</div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div>C\n  D</div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'multiple NodeParts, adjacent primitive & TemplateResult': {
+    render(x: any, y: any) {
+      return html`<div>${x}${html`<span>${y}</span>`}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div>A\n  <span>B</span></div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div>C\n  <span>D</span></div>'
+      }
+    ],
+    stableSelectors: ['div', 'span'],
+  },
+
+  'multiple NodeParts, adjacent TemplateResults': {
+    render(x: any, y: any) {
+      return html`<div>${html`<span>${x}</span>`}${html`<span>${y}</span>`}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div><span>A</span><span>B</span></div>'
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div><span>C</span><span>D</span></div>'
+      }
+    ],
+    stableSelectors: ['div', 'span'],
+  },
+
+  'multiple NodeParts with whitespace': {
+    render(x: any, y: any) {
+      return html`<div>${x} ${y}</div>`;
+    },
+    expectations: [
+      {
+        args: ['A', 'B'],
+        html: '<div>A\n  B</div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const childNodes = dom.querySelector('div')!.childNodes;
+          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
+            .map(n => n.textContent);
+          assert.deepEqual(textContent, ['A', ' ', 'B']);
+        }
+      },
+      {
+        args: ['C', 'D'],
+        html: '<div>C\n  D</div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const childNodes = dom.querySelector('div')!.childNodes;
+          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
+            .map(n => n.textContent);
+          assert.deepEqual(textContent, ['C', ' ', 'D']);
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart with trailing whitespace': {
+    render(x: any) {
+      return html`<div>${x} </div>`;
+    },
+    expectations: [
+      {
+        args: ['A'],
+        html: '<div>A\n  </div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const childNodes = dom.querySelector('div')!.childNodes;
+          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
+            .map(n => n.textContent);
+          assert.deepEqual(textContent, ['A', ' ']);
+        }
+      },
+      {
+        args: ['B'],
+        html: '<div>B\n  </div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const childNodes = dom.querySelector('div')!.childNodes;
+          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
+            .map(n => n.textContent);
+          assert.deepEqual(textContent, ['B', ' ']);
+        }
       }
     ],
     stableSelectors: ['div'],
@@ -310,6 +423,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'NodePart accepts repeat with strings': {
+    // TODO: repeat directive not currently implemented
     skip: true,
     render(words: string[]) {
       return html`${repeat(words, (word, i) => `(${i} ${word})`)}`;
@@ -319,7 +433,6 @@ export const tests: {[name: string] : SSRTest} = {
         args: [['foo', 'bar', 'qux']],
         html: '(0 foo)\n(1 bar)\n(2 qux)'
       },
-      // Attribute hydration not working yet
       {
         args: [['A', 'B', 'C']],
         html: '(0 A)(1 B)(2 C)'
@@ -329,6 +442,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'NodePart accepts repeat with templates': {
+    // TODO: repeat directive not currently implemented
     skip: true,
     render(words: string[]) {
       return html`${repeat(words, (word, i) => html`<p>${i}) ${word}</p>`)}`;
@@ -338,7 +452,6 @@ export const tests: {[name: string] : SSRTest} = {
         args: [['foo', 'bar', 'qux']],
         html: '<p>0) foo</p><p>1) bar</p><p>2) qux</p>'
       },
-      // Attribute hydration not working yet
       {
         args: [['A', 'B', 'C']],
         html: '<p>0) A</p><p>1) B</p><p>2) C</p>'
@@ -347,97 +460,9 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['p'],
   },
 
-  'NodePart accepts nested templates': {
-    render(x: any, y: any) {
-      return html`<div>${x}${html`<span>${y}</span>`}</div>`;
-    },
-    expectations: [
-      {
-        args: ['A', 'B'],
-        html: '<div>A\n  <span>B</span></div>'
-      },
-      {
-        args: ['C', 'D'],
-        html: '<div>C\n  <span>D</span></div>'
-      }
-    ],
-    stableSelectors: ['div', 'span'],
-  },
-
-  'multiple NodeParts': {
-    render(x: any, y: any) {
-      return html`<div>${x}${y}</div>`;
-    },
-    expectations: [
-      {
-        args: ['A', 'B'],
-        html: '<div>A\n  B</div>'
-      },
-      {
-        args: ['C', 'D'],
-        html: '<div>C\n  D</div>'
-      }
-    ],
-    stableSelectors: ['div'],
-  },
-
-  'multiple NodeParts with whitespace': {
-    render(x: any, y: any) {
-      return html`<div>${x} ${y}</div>`;
-    },
-    expectations: [
-      {
-        args: ['A', 'B'],
-        html: '<div>A\n  B</div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          const childNodes = dom.querySelector('div')!.childNodes;
-          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
-            .map(n => n.textContent);
-          assert.deepEqual(textContent, ['A', ' ', 'B']);
-        }
-      },
-      {
-        args: ['C', 'D'],
-        html: '<div>C\n  D</div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          const childNodes = dom.querySelector('div')!.childNodes;
-          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
-            .map(n => n.textContent);
-          assert.deepEqual(textContent, ['C', ' ', 'D']);
-        }
-      }
-    ],
-    stableSelectors: ['div'],
-  },
-
-  'NodePart with trailing whitespace': {
-    render(x: any, y: any) {
-      return html`<div>${x} </div>`;
-    },
-    expectations: [
-      {
-        args: ['A'],
-        html: '<div>A\n  </div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          const childNodes = dom.querySelector('div')!.childNodes;
-          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
-            .map(n => n.textContent);
-          assert.deepEqual(textContent, ['A', ' ']);
-        }
-      },
-      {
-        args: ['B'],
-        html: '<div>B\n  </div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          const childNodes = dom.querySelector('div')!.childNodes;
-          const textContent = filterNodes(childNodes, Node.TEXT_NODE)
-            .map(n => n.textContent);
-          assert.deepEqual(textContent, ['B', ' ']);
-        }
-      }
-    ],
-    stableSelectors: ['div'],
-  },
+  /******************************************************
+   * AttributePart tests
+   ******************************************************/
 
   'AttributePart accepts a string': {
     render(x: any) {
@@ -508,7 +533,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'AttributePart accepts noChange': {
-    // TODO: Test currently fails: `noChange` causes class="Object] [object"
+    // TODO: Test currently fails: `noChange` causes class="[object Object]"
     // to be rendered; to be investigated
     skip: true,
     render(x: any) {
@@ -652,6 +677,10 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  /******************************************************
+   * PropertyPart tests
+   ******************************************************/
+
   'PropertyPart accepts a string': {
     render(x: any) {
       return html`<div .foo=${x}></div>`;
@@ -779,7 +808,7 @@ export const tests: {[name: string] : SSRTest} = {
         args: [noChange],
         html: '<div></div>',
         check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.notProperty((dom.querySelector('div'), 'foo');
+          assert.notProperty(dom.querySelector('div'), 'foo');
         }
       },
       {
@@ -958,6 +987,10 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  /******************************************************
+   * EventPart tests
+   ******************************************************/
+
   'EventPart': {
     render(listener: (e: Event) => void) {
       return html`<button @click=${listener}>X</button>`;
@@ -985,6 +1018,10 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['button'],
   },
 
+  /******************************************************
+   * BooleanAttributePart tests
+   ******************************************************/
+
   'BooleanAttributePart, initially true': {
     render(hide: boolean) {
       return html`<div ?hidden=${hide}></div>`;
@@ -997,6 +1034,147 @@ export const tests: {[name: string] : SSRTest} = {
       {
         args: [false],
         html: '<div></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially truthy (number)': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [1],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [false],
+        html: '<div></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially truthy (object)': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [{}],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [false],
+        html: '<div></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially false': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [false],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially falsey (number)': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [0],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially falsey (null)': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [null],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially falsey (undefined)': {
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially nothing': {
+    // TODO: Test currently fails: `nothing` causes attribute to be rendered
+    // (both on client & server; fix in lit-html?)
+    skip: true,
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [nothing],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart, initially noChange': {
+    // TODO: Test currently fails: `noChange` causes attribute to be rendered
+    skip: true,
+    render(hide: boolean) {
+      return html`<div ?hidden=${hide}></div>`;
+    },
+    expectations: [
+      {
+        args: [noChange],
+        html: '<div></div>',
+      },
+      {
+        args: [true],
+        html: '<div hidden></div>',
       }
     ],
     stableSelectors: ['div'],
