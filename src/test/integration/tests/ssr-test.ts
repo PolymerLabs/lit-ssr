@@ -36,6 +36,7 @@ export interface SSRTest {
    * Used to assert that the DOM reused in hydration, not recreated.
    */
   stableSelectors: Array<string>;
+  expectMutationsOnFirstRender?: boolean,
   skip?: boolean;
   only?: boolean;
 }

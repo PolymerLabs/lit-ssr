@@ -14,7 +14,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {TemplateResult, nothing} from 'lit-html';
+import {TemplateResult, nothing, noChange} from 'lit-html';
 import {
   marker,
   markerRegex,
@@ -181,7 +181,7 @@ export async function* renderValue(
         const templateResult = (instance.instance as any).renderLight();
         yield* renderValue(templateResult, childRenderer, renderInfo);
       }
-    } else if (value === nothing) {
+    } else if (value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {

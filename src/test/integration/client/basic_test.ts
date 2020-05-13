@@ -52,7 +52,7 @@ suite('basic', () => {
 
 
   for (const [testName, testSetup] of Object.entries(tests)) {
-    const {render: testRender, expectations, stableSelectors} = testSetup;
+    const {render: testRender, expectations, stableSelectors, expectMutationsOnFirstRender} = testSetup;
 
     const testFn = testSetup.skip ? test.skip : testSetup.only ? test.only : test;
 
@@ -76,14 +76,16 @@ suite('basic', () => {
           hydrate(testRender(...args), container);
           // Hydration should cause no DOM mutations, because it does not
           // actually update the DOM - it just recreates data structures
-          assert.isEmpty(getMutations());
+          assert.isEmpty(getMutations(), 'Hydration should cause no DOM mutations');
           clearMutations();
 
           // After hydration, render() will be operable.
           render(testRender(...args), container);
           // The first render should also cause no mutations, since it's using
           // the same data as the server.
-          assert.isEmpty(getMutations());
+          if (!expectMutationsOnFirstRender) {
+            assert.isEmpty(getMutations(), 'First render should cause no DOM mutations');
+          }
         } else {
           render(testRender(...args), container);
         }
