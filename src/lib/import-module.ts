@@ -59,10 +59,7 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
     }
 
     if (specifier.startsWith('lit-html')) {
-      if (specifier.match(/lit-html\/directives\/repeat\.js$/)) {
-        // Swap directives when requested.
-        return new URL(`file:${path.resolve('lib/directives/repeat.js')}`);
-      } else if (specifier.match(/lit-html\/directives\/class-map\.js$/)) {
+      if (specifier.match(/lit-html\/directives\/class-map\.js$/)) {
         return new URL(`file:${path.resolve('lib/directives/class-map.js')}`);
       } else {
         // Override where we resolve lit-html from so that we always resolve to

@@ -14,7 +14,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {TemplateResult, nothing, noChange} from 'lit-html';
+import {TemplateResult, nothing, noChange, NodePart, RenderOptions} from 'lit-html';
 import {
   marker,
   markerRegex,
@@ -45,7 +45,7 @@ import {
   LitElementRenderer,
 } from './lit-element-renderer.js';
 import {ChildRenderer} from './element-renderer.js';
-import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
+import {isDirective} from 'lit-html/lib/directive.js';
 import {
   isClassMapDirective,
   ClassMapPreRenderer,
@@ -163,25 +163,31 @@ export async function* renderValue(
   // if (isDirective(value)) {
   //   console.log('directive', value, isRenderLightDirective(value));
   // }
+  if (isRenderLightDirective(value)) {
+    // If a value was produced with renderLight(), we want to call and render
+    // the renderLight() method.
+    const instance = renderInfo.instances[renderInfo.instances.length - 1];
+    // TODO, move out of here into something LitElement specific
+    if (instance.instance !== undefined) {
+      const templateResult = (instance.instance as any).renderLight();
+      value = templateResult;
+    }
+  } else if (isDirective(value)) {
+    const part = new NodePart({} as RenderOptions);
+    part.setValue(value);
+    while (isDirective(part.__pendingValue)) {
+      const directive = part.__pendingValue;
+      part.__pendingValue = noChange;
+      directive(part);
+    }
+    value = part.__pendingValue;
+  }
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
     yield* renderTemplateResult(value, childRenderer, new Set(), renderInfo);
   } else {
     yield `<!--lit-part-->`;
-    if (value === undefined || value === null) {
-      // do nothing
-    } else if (isRepeatDirective(value)) {
-      yield* (value as RepeatPreRenderer)(childRenderer, renderInfo);
-    } else if (isRenderLightDirective(value)) {
-      // If a value was produced with renderLight(), we want to call and render
-      // the renderLight() method.
-      const instance = renderInfo.instances[renderInfo.instances.length - 1];
-      // TODO, move out of here into something LitElement specific
-      if (instance.instance !== undefined) {
-        const templateResult = (instance.instance as any).renderLight();
-        yield* renderValue(templateResult, childRenderer, renderInfo);
-      }
-    } else if (value === nothing || value === noChange) {
+    if (value === undefined || value === null || value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {

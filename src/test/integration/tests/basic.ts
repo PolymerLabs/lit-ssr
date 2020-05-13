@@ -14,6 +14,7 @@
 
 import {html, noChange, nothing} from 'lit-html';
 import {repeat} from 'lit-html/directives/repeat.js';
+import {cache} from 'lit-html/directives/cache.js';
 
 import { SSRTest } from './ssr-test';
 
@@ -422,42 +423,59 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['ol', 'li'],
   },
 
-  'NodePart accepts repeat with strings': {
-    // TODO: repeat directive not currently implemented
-    skip: true,
+  'NodePart accepts directive: repeat with strings': {
     render(words: string[]) {
       return html`${repeat(words, (word, i) => `(${i} ${word})`)}`;
     },
     expectations: [
       {
         args: [['foo', 'bar', 'qux']],
-        html: '(0 foo)\n(1 bar)\n(2 qux)'
+        html: '(0 foo)\n(1 bar)\n(2 qux)\n'
       },
       {
         args: [['A', 'B', 'C']],
-        html: '(0 A)(1 B)(2 C)'
+        html: '(0 A)\n(1 B)\n(2 C)\n'
       }
     ],
     stableSelectors: [],
   },
 
-  'NodePart accepts repeat with templates': {
-    // TODO: repeat directive not currently implemented
-    skip: true,
+  'NodePart accepts directive: repeat with templates': {
     render(words: string[]) {
       return html`${repeat(words, (word, i) => html`<p>${i}) ${word}</p>`)}`;
     },
     expectations: [
       {
         args: [['foo', 'bar', 'qux']],
-        html: '<p>0) foo</p><p>1) bar</p><p>2) qux</p>'
+        html: '<p>\n  0\n  )\n  foo\n</p>\n<p>\n  1\n  )\n  bar\n</p>\n<p>\n  2\n  )\n  qux\n</p>\n'
       },
       {
         args: [['A', 'B', 'C']],
-        html: '<p>0) A</p><p>1) B</p><p>2) C</p>'
+        html: '<p>\n  0\n  )\n  A\n</p>\n<p>\n  1\n  )\n  B\n</p>\n<p>\n  2\n  )\n  C\n</p>\n'
       }
     ],
     stableSelectors: ['p'],
+  },
+
+  'NodePart accepts directive: cache': {
+    render(bool: boolean) {
+      return html`${cache(bool ? html`<p>true</p>` : html`<b>false</b>` )}`;
+    },
+    expectations: [
+      {
+        args: [true],
+        html: '<p>true</p>'
+      },
+      {
+        args: [false],
+        html: '<b>false</b>'
+      },
+      {
+        args: [true],
+        html: '<p>true</p>'
+      }
+    ],
+    stableSelectors: [],
   },
 
   /******************************************************
