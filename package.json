@@ -6,8 +6,10 @@
   "main": "index.js",
   "scripts": {
     "build": "tsc",
+    "build:benchmark": "npm run build && node --experimental-modules --experimental-vm-modules scripts/build-benchmark.js",
     "start": "node --experimental-vm-modules ./demo/server.js",
-    "start:gmail": "node --experimental-modules --experimental-vm-modules ./test/benchmark/server.js",
+    "start:mail": "npm run build:benchmark && node --experimental-modules --experimental-vm-modules ./test/benchmark/server.js",
+    "start:mail-react": "cd ./test/benchmark/react && node ./server/index.js",
     "test": "npm run test:unit && npm run test:integration",
     "test:integration": "node --experimental-vm-modules test/integration/test.js",
     "test:unit": "node --experimental-vm-modules ./test/all-tests.js | tap-spec",
@@ -54,6 +56,8 @@
     "@types/koa-static": "^4.0.1",
     "@types/tape": "^4.2.33",
     "@webcomponents/shadycss": "^1.9.1",
+    "del": "^5.1.0",
+    "dom5": "^3.0.1",
     "koa": "^2.7.0",
     "koa-node-resolve": "^1.0.0-pre.5",
     "koa-static": "^5.0.0",
@@ -62,6 +66,8 @@
     "parse5": "^5.1.0",
     "parse5-traverse": "^1.0.3",
     "resolve": "^1.10.1",
+    "rollup": "^2.10.0",
+    "rollup-plugin-node-resolve": "^5.2.0",
     "tape": "^4.11.0"
   },
   "engines": {

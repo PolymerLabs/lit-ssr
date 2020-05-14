@@ -18,7 +18,8 @@ body {
   font-weight: 400;
   src: url(https://fonts.gstatic.com/s/materialicons/v47/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2) format('woff2');
 }
-.material-icons {
+
+.material-icons, mwc-fab, mwc-icon, mwc-icon-button, mwc-checkbox {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
@@ -33,6 +34,48 @@ body {
   font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
+
+mwc-fab {
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
+  background-color: #fff;
+  background-image: none;
+  border-radius: 24px;
+  color: #3c4043;
+  font-weight: 500;
+  height: 48px;
+  min-width: 56px;
+  padding: 0 24px 0 0;
+  text-transform: none;
+  padding-left: 8px;
+}
+
+mwc-fab > * {
+  padding: 8px;
+}
+
+.star, .important {
+  color: teal;
+}
+
+.unread, .favorite {
+  color: steelblue;
+}
+
+.odd {
+  background:#eee;
+}
+
+.mail-item > mwc-checkbox, .mail-item > mwc-icon-button {
+  margin: 4px;
+}
+
+mwc-fab > *, mwc-icon > *, mwc-icon-button > *, mwc-checkbox > * {
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+}
+
 .one-bar {
   border-bottom: 1px solid #e3e3e3;
 }
@@ -46,14 +89,26 @@ body {
 .main-nav {
   min-width: 256px;
 }
+.folder-list {
+  list-style: none;
+  padding-inline-start: 0;
+}
+.folder-list > li {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
 .mdc-list.folder-list,
 mdc-list.folder-list {
   padding: 16px 16px 0 0 !important;
 }
 .folder-list > .mdc-list-item,
 .folder-list > mdc-list-item {
-  padding-left: 24px !important;
+  padding-left: 16px !important;
   border-radius: 0 32px 32px 0;
+}
+.mdc-list-item > mwc-icon {
+  padding-right: 16px;
 }
 .main-body {
   display: flex;
@@ -65,7 +120,10 @@ mdc-list.folder-list {
 .main-body-header {
   display: flex;
   align-items: center;
-  padding: 0 10px 0 4px;
+  padding: 8px 10px 8px 4px;
+}
+.main-body-header > * {
+  padding: 4px;
 }
 .main-body-content {
   background-color: #fff;
@@ -75,7 +133,15 @@ mdc-list.folder-list {
   flex: 1;
 }
 .mail-tabs {
+  display: block;
   width: 300px !important;
+}
+.mail-tabs > * {
+  display: inline-block;
+  padding: 16px;
+}
+.mail-tabs > [active] {
+  border-bottom: 2px solid steelblue;
 }
 .mail-last-range {
   font-size: 0.9em;

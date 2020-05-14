@@ -17,7 +17,8 @@ import { window } from '../../lib/dom-shim.js';
 import * as koalib from 'koa';
 import { URL } from 'url';
 import * as path from 'path';
-import { AsyncIterableReader } from '../../lib/async-iterator-readable.js';
+import {AsyncIterableReader} from '../../lib/util/async-iterator-readable.js';
+import {importModule} from '../../lib/import-module.js';
 
 const { createRequire } = module as any;
 const require = createRequire(import.meta.url);
@@ -36,6 +37,8 @@ const { nodeResolve } = require('koa-node-resolve');
 
 process.on('unhandledRejection', up => { throw up });
 
+const appModule = importModule('./app-server.build.js', import.meta.url, window);
+
 const port = 8080;
 new Koa()
   .use(async (ctx: koalib.Context, next: Function) => {
@@ -44,8 +47,6 @@ new Koa()
       return;
     }
     console.log('rendering /');
-    const importModule = await import('../../lib/import-module.js');
-    const appModule = importModule.importModule('./app-server.js', import.meta.url, window);
     const renderApp = (await appModule).namespace.renderApp;
     const stream = new AsyncIterableReader(renderApp());
     ctx.type = 'text/html';

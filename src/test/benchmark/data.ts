@@ -15,7 +15,8 @@
 /**
  * Sample data for rendering the gmail benchmark page.
  */
-export const data = [
+
+ const stuff = [
   {
     sender: "Daniel Freedman",
     subject: "Re: Daniel Freedman, congratulations on your peer bonus!",
@@ -316,3 +317,16 @@ export const data = [
     date: "8:02 AM"
   }
 ];
+
+const count = 500;
+
+interface MailItem {
+  sender: string, subject: string, date: string,
+  unread: boolean, favorite: boolean, star: boolean, important: boolean
+}
+
+export const data: MailItem[] = [];
+for (let i = 0; i < count; i++) {
+  data[i] = { unread: !(i % 3), favorite: !((i + 3) % 5), star: !((i + 1) % 7),
+    important: !((i + 7) % 11), ...stuff[i % stuff.length]};
+}
