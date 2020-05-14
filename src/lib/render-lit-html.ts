@@ -14,7 +14,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {TemplateResult, nothing} from 'lit-html';
+import {TemplateResult, nothing, noChange} from 'lit-html';
 import {
   marker,
   markerRegex,
@@ -82,9 +82,15 @@ const getTemplate = (result: TemplateResult) => {
           index: nodeIndex,
         });
       }
+      // There will be two comments per part (open+close) in the rendered
+      // output and on the client, so increment again for that
+      nodeIndex++;
     } else if (isElement(node) && node.attrs.length > 0) {
       for (const attr of node.attrs) {
         if (attr.name.endsWith(boundAttributeSuffix)) {
+          // Note that although we emit a lit-bindings comment marker for any
+          // nodes with bindings, we don't account for it in the nodeIndex because
+          // that will not be injected into the client template
           const name = attr.name.substring(
             0,
             attr.name.length - boundAttributeSuffix.length
@@ -181,7 +187,7 @@ export async function* renderValue(
         const templateResult = (instance.instance as any).renderLight();
         yield* renderValue(templateResult, childRenderer, renderInfo);
       }
-    } else if (value === nothing) {
+    } else if (value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {
