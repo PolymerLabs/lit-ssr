@@ -16,6 +16,7 @@ import {html, noChange, nothing} from 'lit-html';
 import {repeat} from 'lit-html/directives/repeat.js';
 import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
+import {classMap} from 'lit-html/directives/class-map.js';
 
 import { SSRTest } from './ssr-test';
 
@@ -676,6 +677,23 @@ export const tests: {[name: string] : SSRTest} = {
       {
         args: [['d', 'e', 'f']],
         html: '<div class="def"></div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts a directive: classMap': {
+    render(map: any) {
+      return html`<div class=${classMap(map)}></div>`;
+    },
+    expectations: [
+      {
+        args: [{foo: true, bar: false, baz: true}],
+        html: '<div class="foo baz"></div>'
+      },
+      {
+        args: [{foo: false, bar: true, baz: true, zug: true}],
+        html: '<div class="bar baz zug"></div>'
       }
     ],
     stableSelectors: ['div'],

@@ -14,7 +14,14 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {TemplateResult, nothing, noChange, NodePart, RenderOptions} from 'lit-html';
+import {
+  TemplateResult,
+  nothing,
+  noChange,
+  NodePart,
+  RenderOptions,
+  AttributeCommitter,
+} from 'lit-html';
 import {
   marker,
   markerRegex,
@@ -28,7 +35,6 @@ import {
   Node,
   DefaultTreeDocumentFragment,
   DefaultTreeNode,
-  Attribute,
 } from 'parse5';
 
 import {
@@ -47,10 +53,6 @@ import {
 } from './lit-element-renderer.js';
 import {ChildRenderer} from './element-renderer.js';
 import {isDirective} from 'lit-html/lib/directive.js';
-import {
-  isClassMapDirective,
-  ClassMapPreRenderer,
-} from './directives/class-map.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 
@@ -106,8 +108,6 @@ const getTemplate = (result: TemplateResult) => {
   templateCache.set(result.strings, t);
   return t;
 };
-
-const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
 type SlotInfo = {
   slotName: string | undefined;
@@ -348,7 +348,7 @@ export async function* renderTemplateResult(
 
         let boundAttrsCount = 0;
         for (const attr of node.attrs) {
-          if (attr.name.endsWith('$lit$')) {
+          if (attr.name.endsWith(boundAttributeSuffix)) {
             const attrSourceLocation = node.sourceCodeLocation!.attrs[
               attr.name
             ];
@@ -373,7 +373,7 @@ export async function* renderTemplateResult(
                 value = result.values[partIndex++];
               } else {
                 // Multi-expression property binding
-                value = getAttrValue(attr, result, partIndex);
+                value = getAttrValue(statics, result, partIndex);
                 partIndex += statics.length - 1;
               }
               if (instance !== undefined) {
@@ -407,9 +407,18 @@ export async function* renderTemplateResult(
               }
             } else {
               let attributeString = `${attributeName}="`;
+              // Obvious bad hack below; avoids breaking type change for now,
+              // since committer.element is expected to be an element, but
+              // won't be during SSR. To be discussed.
+              const committer = new AttributeCommitter((undefined as any as Element), attributeName, statics);
+              committer.parts.forEach((part, i) => {
+                part.setValue(result.values[partIndex + i]);
+                part.commit();
+              });
               // attr.value has the raw attribute value, which may contain multiple
               // bindings. Replace the markers with their resolved values.
-              attributeString += getAttrValue(attr, result, partIndex);
+              // TODO: escape the attribute string
+              attributeString += committer.getValue();
               partIndex += statics.length - 1;
               yield attributeString + '"';
             }
@@ -511,15 +520,10 @@ export async function* renderTemplateResult(
 }
 
 const getAttrValue = (
-  attr: Attribute,
+  statics: string[],
   result: TemplateResult,
   startIndex: number
 ) =>
-  attr.value.replace(globalMarkerRegex, () => {
-    const value = result.values[startIndex++];
-    if (isClassMapDirective(value)) {
-      return (value as ClassMapPreRenderer)();
-    } else {
-      return String(value);
-    }
-  });
+  statics
+    .slice(1)
+    .reduce((p, v, i) => p + String(result.values[startIndex + i]) + v, statics[0]);
