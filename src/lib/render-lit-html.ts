@@ -20,6 +20,7 @@ import {
   markerRegex,
   TemplatePart,
   boundAttributeSuffix,
+  lastAttributeNameRegex,
 } from 'lit-html/lib/template.js';
 
 // types only
@@ -345,6 +346,8 @@ export async function* renderTemplateResult(
             const attrSourceLocation = node.sourceCodeLocation!.attrs[
               attr.name
             ];
+            const stringForPart = result.strings[partIndex];
+            const name = lastAttributeNameRegex.exec(stringForPart)![2];
             const attrNameStartOffset = attrSourceLocation.startOffset;
             const attrEndOffset = attrSourceLocation.endOffset;
             const statics = attr.value.split(markerRegex);
@@ -354,9 +357,9 @@ export async function* renderTemplateResult(
             );
             yield html.substring(lastOffset!, attrNameStartOffset);
 
-            if (attributeName.startsWith('.')) {
+            if (name.startsWith('.')) {
               // Property binding
-              const propertyName = attributeName.substring(1);
+              const propertyName = name.substring(1);
 
               let value: unknown;
               if (statics.length === 2) {
@@ -371,15 +374,16 @@ export async function* renderTemplateResult(
                 (instance as any)[propertyName] = value;
               }
               // Property should be reflected to attribute
-              let reflectedName = reflectedAttributeName(tagName, propertyName);
+              const reflectedName = reflectedAttributeName(tagName, propertyName);
+
               if (reflectedName !== undefined) {
                 yield `${reflectedName}="${value}"`;
               }
-            } else if (attr.name.startsWith('@')) {
+            } else if (name.startsWith('@')) {
               // Event binding
               // do nothing with values
               partIndex += statics.length - 1;
-            } else if (attr.name.startsWith('?')) {
+            } else if (name.startsWith('?')) {
               // Boolean attribute binding
               attributeName = attributeName.substring(1);
               if (
