@@ -14,6 +14,7 @@
 
 import {html, noChange, nothing} from 'lit-html';
 import {repeat} from 'lit-html/directives/repeat.js';
+import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
 
 import { SSRTest } from './ssr-test';
@@ -25,6 +26,12 @@ const testSymbol = Symbol();
 const testObject = {};
 const testArray = [1,2,3];
 const testFunction = () => 'test function';
+
+let guardedCallCount = 0;
+const guardedTemplate = (bool: boolean) => {
+  guardedCallCount++;
+  return html`value is ${bool ? true : false}`;
+}
 
 export const tests: {[name: string] : SSRTest} = {
 
@@ -476,6 +483,36 @@ export const tests: {[name: string] : SSRTest} = {
       }
     ],
     stableSelectors: [],
+  },
+
+  'NodePart accepts directive: guard': {
+    render(bool: boolean) {
+      return html`<div>${guard([bool], () => guardedTemplate(bool))}</div>`
+    },
+    expectations: [
+      {
+        args: [true],
+        html: '<div>value is\n  true</div>',
+        check(assert: Chai.Assert) {
+          assert.equal(guardedCallCount, 1);
+        }
+      },
+      {
+        args: [true],
+        html: '<div>value is\n  true</div>',
+        check(assert: Chai.Assert) {
+          assert.equal(guardedCallCount, 1);
+        }
+      },
+      {
+        args: [false],
+        html: '<div>value is\n  false</div>',
+        check(assert: Chai.Assert) {
+          assert.equal(guardedCallCount, 2);
+        }
+      }
+    ],
+    stableSelectors: ['div'],
   },
 
   /******************************************************
