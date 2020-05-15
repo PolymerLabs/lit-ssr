@@ -23,10 +23,10 @@ export type Constructor<T> = {new (): T};
  * An object that renders elements of a certain type.
  */
 export class LitElementRenderer implements ElementRenderer {
-  async *renderElement(
+  *renderElement(
     instance: LitElement,
     _renderInfo: RenderInfo
-  ): AsyncIterableIterator<string> {
+  ): IterableIterator<string> {
     const renderResult = ((instance as unknown) as {
       render(): TemplateResult;
     }).render();
@@ -35,9 +35,9 @@ export class LitElementRenderer implements ElementRenderer {
     yield '</shadow-root>';
   }
 
-  async *renderStyles(
+  *renderStyles(
     _elementClass: Constructor<HTMLElement>
-  ): AsyncIterator<string> {
+  ): Iterator<string> {
     const scopedStyles = [];
     for (const [tagName, definition] of (customElements as any).__definitions) {
       const styles = [(definition.ctor as any).styles].flat(Infinity);
