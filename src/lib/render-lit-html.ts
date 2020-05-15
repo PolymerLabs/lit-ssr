@@ -130,14 +130,14 @@ export const getScopedStyles = () => {
   }
   return scopedStyles;
 };
-export async function* render(value: unknown): AsyncIterableIterator<string> {
+export function* render(value: unknown): IterableIterator<string> {
   yield* renderValue(value, {instances: []});
 }
 
-export async function* renderValue(
+export function* renderValue(
   value: unknown,
   renderInfo: RenderInfo
-): AsyncIterableIterator<string> {
+): IterableIterator<string> {
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
     yield* renderTemplateResult(value, renderInfo);
@@ -170,10 +170,10 @@ export async function* renderValue(
   yield `<!--/lit-part-->`;
 }
 
-export async function* renderTemplateResult(
+export function* renderTemplateResult(
   result: TemplateResult,
   renderInfo: RenderInfo
-): AsyncIterableIterator<string> {
+): IterableIterator<string> {
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -234,7 +234,7 @@ export async function* renderTemplateResult(
     lastOffset = offset;
   };
 
-  async function* handleNode(node: DefaultTreeNode) {
+  function* handleNode(node: DefaultTreeNode) {
     if (isCommentNode(node)) {
       if (node.data === marker) {
         yield flushTo(node.sourceCodeLocation!.startOffset);

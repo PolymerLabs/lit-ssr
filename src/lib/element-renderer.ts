@@ -32,12 +32,12 @@ export interface ElementRenderer {
   renderElement(
     e: HTMLElement,
     renderInfo: RenderInfo
-  ): AsyncIterableIterator<string>;
+  ): IterableIterator<string>;
 
   /**
    * Render the pre-scoped styles for an element definition.
    *
    * @param c The element _class_ to render styles for.
    */
-  renderStyles(c: Constructor<HTMLElement>): AsyncIterator<string>;
+  renderStyles(c: Constructor<HTMLElement>): Iterator<string>;
 }

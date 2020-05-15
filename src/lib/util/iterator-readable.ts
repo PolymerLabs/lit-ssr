@@ -15,19 +15,19 @@
 import {Readable, ReadableOptions} from 'stream';
 
 /**
- * Converts an AsyncIterable into a Readable
+ * Converts an Iterable into a Readable
  */
-export class AsyncIterableReader<T> extends Readable {
-  private _iterator: AsyncIterator<T>;
+export class IterableReader<T> extends Readable {
+  private _iterator: Iterator<T>;
 
-  constructor(iterable: AsyncIterable<T>, opts?: ReadableOptions) {
+  constructor(iterable: Iterable<T>, opts?: ReadableOptions) {
     super(opts);
-    this._iterator = iterable[Symbol.asyncIterator]();
+    this._iterator = iterable[Symbol.iterator]();
   }
 
-  async _read(_size: number) {
+  _read(_size: number) {
     try {
-      const r = await this._iterator.next();
+      const r = this._iterator.next();
       this.push(r.done ? null : r.value);
     } catch (e) {
       this.emit('error', e);
