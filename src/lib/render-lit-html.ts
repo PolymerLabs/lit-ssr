@@ -125,6 +125,13 @@ declare global {
   }
 }
 
+const setAttributeToElement = (element: LitElement, name: string,
+    value: unknown) => {
+  if (element.attributeChangedCallback) {
+    element.attributeChangedCallback(name, null, value as string);
+  }
+}
+
 /**
  * Returns the scoped style sheets required by all elements currently defined.
  */
@@ -224,7 +231,7 @@ export async function* renderTemplateResult(
   /* The next value in result.values to render */
   let partIndex = 0;
 
-  /* 
+  /*
     The the template part index, which is different from the part index as
     multiple-binding attribute expressions are combined into one template part.
    */
@@ -397,14 +404,21 @@ export async function* renderTemplateResult(
               }
               const value = result.values[partIndex++];
               if (value) {
+                if (instance !== undefined) {
+                  setAttributeToElement(instance, attributeName, value);
+                }
                 yield attributeName;
               }
             } else {
               let attributeString = `${attributeName}="`;
               // attr.value has the raw attribute value, which may contain multiple
               // bindings. Replace the markers with their resolved values.
-              attributeString += getAttrValue(attr, result, partIndex);
+              const value = getAttrValue(attr, result, partIndex);
+              attributeString += value;
               partIndex += statics.length - 1;
+              if (instance !== undefined) {
+                setAttributeToElement(instance, attributeName, value);
+              }
               yield attributeString + '"';
             }
             skipTo(attrEndOffset);
