@@ -48,6 +48,17 @@ const templateCache = new Map<
   {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
 >();
 
+type TextOp = {
+  type: 'text',
+  value: string,
+};
+
+type NodeParOp = {
+  type: 'node-part',
+};
+
+type Op = TextOp | NodeParOp;
+
 const getTemplate = (result: TemplateResult) => {
   const template = templateCache.get(result.strings);
   if (template !== undefined) {
@@ -57,7 +68,65 @@ const getTemplate = (result: TemplateResult) => {
   const ast = parseFragment(html, {
     sourceCodeLocationInfo: true,
   }) as DefaultTreeDocumentFragment;
+
   const parts: Array<TemplatePart> = [];
+
+  const ops: Array<Op> = [];
+
+  /* The last offset of html written to the stream */
+  let lastOffset: number | undefined = 0;
+
+  /**
+   * Sets `lastOffset` to `offset`, skipping a range of characters. This is
+   * useful for skipping <slot>s and distributed nodes in flattened mode, or
+   * skipping and re-writting lit-html marker nodes.
+   */
+  const skipTo = (offset: number) => {
+    if (lastOffset === undefined) {
+      throw new Error('lastOffset is undefined');
+    }
+    if (offset < lastOffset) {
+      throw new Error(`offset must be greater than lastOffset.
+        offset: ${offset}
+        lastOffset: ${lastOffset}
+      `);
+    }
+    lastOffset = offset;
+  };
+
+  /**
+   * Creates or appends to a text opcode with a substring of the html from the
+   * `lastOffset` flushed to `offset`.
+   */
+  const flushTo = (offset?: number) => {
+    if (lastOffset === undefined) {
+      throw new Error('lastOffset is undefined');
+    }
+    const previousLastOffset = lastOffset;
+    lastOffset = offset;
+    const value = html.substring(previousLastOffset, offset);
+    const op = ops[ops.length - 1];
+    if (op !== undefined && op.type === 'text') {
+      op.value += value;
+    } else {
+      ops.push({
+        type: 'text',
+        value
+      });
+    }
+  };
+
+  const flush = (value: string) => {
+    const op = ops[ops.length - 1];
+    if (op !== undefined && op.type === 'text') {
+      op.value += value;
+    } else {
+      ops.push({
+        type: 'text',
+        value
+      });
+    }
+  };
 
   // Depth-first node index. Initialized to -1 so that the first child node is
   // index 0, to match client-side lit-html.
@@ -69,29 +138,63 @@ const getTemplate = (result: TemplateResult) => {
           type: 'node',
           index: nodeIndex,
         });
+        flushTo(node.sourceCodeLocation!.startOffset);
+        skipTo(node.sourceCodeLocation!.endOffset);
+        ops.push({
+          type: 'node-part'
+        });
+        // There will be two comments per part (open+close) in the rendered
+        // output and on the client, so increment again for that
+        nodeIndex++;
       }
-      // There will be two comments per part (open+close) in the rendered
-      // output and on the client, so increment again for that
-      nodeIndex++;
-    } else if (isElement(node) && node.attrs.length > 0) {
-      for (const attr of node.attrs) {
-        if (attr.name.endsWith(boundAttributeSuffix)) {
-          // Note that although we emit a lit-bindings comment marker for any
-          // nodes with bindings, we don't account for it in the nodeIndex because
-          // that will not be injected into the client template
-          const name = attr.name.substring(
-            0,
-            attr.name.length - boundAttributeSuffix.length
-          );
-          const strings = attr.value.split(markerRegex);
-          parts.push({
-            type: 'attribute',
-            index: nodeIndex,
-            name,
-            strings,
-          });
+    } else if (isElement(node)) {
+      // Whether to flush the start tag. This is neccessary if we're changing
+      // any of the attributes in the tag, so it's true for custom-elements
+      // which might reflect their own state, or any element with a binding.
+      let writeTag = false;
+      let boundAttrsCount = 0;
+
+      const tagName = node.tagName;
+      if (tagName.indexOf('-') !== -1) {
+        // Looking up the constructor here means that custom elements must be
+        // registered before rendering the first template that contains them.
+        const ctor = customElements.get(tagName);
+        if (ctor !== undefined) {
+          // Write the start tag
+          writeTag = true;
         }
       }
+      if (node.attrs.length > 0) {
+        for (const attr of node.attrs) {
+          if (attr.name.endsWith(boundAttributeSuffix)) {
+            writeTag = true;
+            boundAttrsCount += 1;
+            // Note that although we emit a lit-bindings comment marker for any
+            // nodes with bindings, we don't account for it in the nodeIndex because
+            // that will not be injected into the client template
+            const name = attr.name.substring(
+              0,
+              attr.name.length - boundAttributeSuffix.length
+            );
+            const strings = attr.value.split(markerRegex);
+            parts.push({
+              type: 'attribute',
+              index: nodeIndex,
+              name,
+              strings,
+            });
+          }
+        }
+      }
+
+      if (writeTag) {
+        flushTo(node.sourceCodeLocation!.startTag.endOffset);
+      }
+
+      if (boundAttrsCount > 0) {
+        flush(`<!--lit-bindings ${nodeIndex}-->`);
+      }
+
     }
     nodeIndex++;
   }
