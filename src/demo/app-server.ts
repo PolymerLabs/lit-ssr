@@ -2,8 +2,12 @@
  * This is a server-old module that renders the HTML file shell.
  */
 
-import {render, getScopedStyles} from '../lib/render-lit-html.js';
-import {template} from './module.js';
+import {render} from '../lib/render-lit-html.js';
+import {template, initialData} from './module.js';
+
+export function renderAppWithInitialData() {
+  return renderApp(initialData);
+}
 
 // This module runs in the app context with the client-side code, but is a
 // server-only module. It doesn't use lit-html so that it can render the HTML
@@ -23,9 +27,11 @@ export async function* renderApp(data: any) {
             import('/demo/app-client.js');
           });
         </script>
+        <script type="module">
+          import {hydrateShadowRoots} from './node_modules/template-shadowroot/template-shadowroot.js';
+          hydrateShadowRoots(document.body);
+        </script>
         `;
-  yield* getScopedStyles();
-
   yield `
       </head>
       <body>
@@ -34,7 +40,7 @@ export async function* renderApp(data: any) {
 
   // Call the SSR render() function to render a client/server shared template.
   yield* render(
-    template(data.name, data.message, data.items),
+    template(data),
     undefined,
     false
   );
