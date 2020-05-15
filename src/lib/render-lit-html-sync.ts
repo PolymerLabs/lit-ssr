@@ -61,6 +61,10 @@ export const timing = {
   total: 0
 }
 
+const resetTiming = () => {
+  timing.parsing = timing.getTemplate = timing.total = 0;
+}
+
 const templateCache = new Map<
   TemplateStringsArray,
   {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
@@ -155,19 +159,20 @@ export const getScopedStyles = () => {
   }
   return scopedStyles;
 };
-export async function* render(
+export function render(
   value: unknown,
   childRenderer: ChildRenderer | undefined,
   flattened: boolean = false
-): AsyncIterableIterator<string> {
-  yield* renderValue(value, childRenderer, {flattened, instances: []});
+): string {
+  resetTiming();
+  return renderValue(value, childRenderer, {flattened, instances: []});
 }
 
-export async function* renderValue(
+export function renderValue(
   value: unknown,
   childRenderer: ChildRenderer | undefined,
   renderInfo: RenderInfo
-): AsyncIterableIterator<string> {
+): string {
   // flattened = flattened ?? true;
 
   // console.log('render', {
@@ -178,15 +183,16 @@ export async function* renderValue(
   // if (isDirective(value)) {
   //   console.log('directive', value, isRenderLightDirective(value));
   // }
+  let result = '';
   if (value instanceof TemplateResult) {
-    yield `<!--lit-part ${value.digest}-->`;
-    yield* renderTemplateResult(value, childRenderer, new Set(), renderInfo);
+    result +=  `<!--lit-part ${value.digest}-->`;
+    result += renderTemplateResult(value, childRenderer, new Set(), renderInfo);
   } else {
-    yield `<!--lit-part-->`;
+    result += `<!--lit-part-->`;
     if (value === undefined || value === null) {
       // do nothing
     } else if (isRepeatDirective(value)) {
-      yield* (value as RepeatPreRenderer)(childRenderer, renderInfo);
+      result += (value as RepeatPreRenderer)(childRenderer, renderInfo);
     } else if (isRenderLightDirective(value)) {
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
@@ -194,28 +200,29 @@ export async function* renderValue(
       // TODO, move out of here into something LitElement specific
       if (instance.instance !== undefined) {
         const templateResult = (instance.instance as any).renderLight();
-        yield* renderValue(templateResult, childRenderer, renderInfo);
+        result += renderValue(templateResult, childRenderer, renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {
-        yield* renderValue(item, childRenderer, renderInfo);
+        result += renderValue(item, childRenderer, renderInfo);
       }
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
-      yield String(value);
+      result += String(value);
     }
   }
-  yield `<!--/lit-part-->`;
+  result += `<!--/lit-part-->`;
+  return result;
 }
 
-export async function* renderTemplateResult(
+export function renderTemplateResult(
   result: TemplateResult,
   childRenderer: ChildRenderer | undefined,
   claimedNodes: Set<Node> = new Set(),
   renderInfo: RenderInfo /* = {flattened: true} */
-): AsyncIterableIterator<string> {
+): string {
   const {slot} = renderInfo;
 
   // In order to render a TemplateResult we have to handle and stream out
@@ -250,6 +257,8 @@ export async function* renderTemplateResult(
   /* The last offset of html written to the stream */
   let lastOffset: number | undefined = 0;
 
+  let rtResult = '';
+
   /**
    * Returns a substring of the html from the `lastOffset` flushed to `offset`
    * ready for yielding to the renderTemplateResult iterable.
@@ -281,10 +290,11 @@ export async function* renderTemplateResult(
     lastOffset = offset;
   };
 
-  async function* handleNode(node: DefaultTreeNode) {
+  function handleNode(node: DefaultTreeNode) {
+    let nodeResult = '';
     if (isCommentNode(node)) {
       if (node.data === marker) {
-        yield flushTo(node.sourceCodeLocation!.startOffset);
+        nodeResult += flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
         templatePartIndex++;
@@ -296,12 +306,12 @@ export async function* renderTemplateResult(
           // TODO: we also want to render placeholder comments for the
           // distributed nodes
           if (value instanceof TemplateResult) {
-            yield `<!--lit-part ${value.digest}--><!--/lit-part-->`;
+            nodeResult += `<!--lit-part ${value.digest}--><!--/lit-part-->`;
           } else {
-            yield `<!--lit-part--><!--/lit-part-->`;
+            nodeResult += `<!--lit-part--><!--/lit-part-->`;
           }
         } else {
-          yield* renderValue(value, childRenderer, renderInfo);
+          nodeResult += renderValue(value, childRenderer, renderInfo);
         }
       }
     } else if (isElement(node)) {
@@ -315,7 +325,7 @@ export async function* renderTemplateResult(
 
       if (claimedNodes.has(node)) {
         // Skip the already distributed node
-        yield flushTo(node.sourceCodeLocation!.startOffset);
+        nodeResult += flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         // [1] TODO: write the distributed node placeholder comment
       } else {
@@ -324,11 +334,11 @@ export async function* renderTemplateResult(
         const tagName = node.tagName;
 
         if (tagName === 'slot' && renderInfo.flattened) {
-          yield flushTo(node.sourceCodeLocation!.startTag.startOffset);
+          nodeResult += flushTo(node.sourceCodeLocation!.startTag.startOffset);
           const slotName = getAttr(node, 'name');
 
           if (childRenderer !== undefined) {
-            yield* childRenderer.renderChildren(slotName);
+            nodeResult += childRenderer.renderChildren(slotName);
           }
 
           skipTo(node.sourceCodeLocation!.endOffset);
@@ -367,7 +377,7 @@ export async function* renderTemplateResult(
               0,
               attr.name.length - boundAttributeSuffix.length
             );
-            yield html.substring(lastOffset!, attrNameStartOffset);
+            nodeResult += html.substring(lastOffset!, attrNameStartOffset);
 
             if (attributeName.startsWith('.')) {
               // Property binding
@@ -388,7 +398,7 @@ export async function* renderTemplateResult(
               // Property should be reflected to attribute
               let reflectedName = reflectedAttributeName(tagName, propertyName);
               if (reflectedName !== undefined) {
-                yield `${reflectedName}="${value}"`;
+                nodeResult += `${reflectedName}="${value}"`;
               }
             } else if (attr.name.startsWith('@')) {
               // Event binding
@@ -408,7 +418,7 @@ export async function* renderTemplateResult(
               }
               const value = result.values[partIndex++];
               if (value) {
-                yield attributeName;
+                nodeResult += attributeName;
               }
             } else {
               let attributeString = `${attributeName}="`;
@@ -416,7 +426,7 @@ export async function* renderTemplateResult(
               // bindings. Replace the markers with their resolved values.
               attributeString += getAttrValue(attr, result, partIndex);
               partIndex += statics.length - 1;
-              yield attributeString + '"';
+              nodeResult += attributeString + '"';
             }
             skipTo(attrEndOffset);
             boundAttrsCount += 1;
@@ -425,14 +435,14 @@ export async function* renderTemplateResult(
         }
 
         if (writeTag || boundAttrsCount > 0) {
-          yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
+          nodeResult += flushTo(node.sourceCodeLocation!.startTag.endOffset);
         }
 
         if (boundAttrsCount > 0) {
           const templatePart = templateParts[templatePartIndex];
           // templatePart.index is the depth-first node index of the parent node
           // of this comment.
-          yield `<!--lit-bindings ${templatePart.index}-->`;
+          nodeResult += `<!--lit-bindings ${templatePart.index}-->`;
         }
 
         if (instance !== undefined) {
@@ -445,7 +455,7 @@ export async function* renderTemplateResult(
           );
           // TODO: look up a renderer instead of creating one
           const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(
+          nodeResult += renderer.renderElement(
             instance as LitElement,
             childRenderer,
             renderInfo
@@ -456,13 +466,14 @@ export async function* renderTemplateResult(
         // renderInfo.instances.pop();
       }
     }
+    return nodeResult;
   }
 
   // At the top-level of a TemplateResult we may have nodes that are children of
   // an element with slots, so we need to handle top-level nodes specially in an
   // outer loop. From there we perform a depth-first traversal.
   if (ast.childNodes === undefined) {
-    return;
+    return rtResult;
   }
   for (const node of ast.childNodes) {
     if (isElement(node)) {
@@ -474,15 +485,15 @@ export async function* renderTemplateResult(
         if (nodeSlotName === slot.slotName) {
           skipTo(node.sourceCodeLocation!.startOffset);
           for (const child of depthFirst(node)) {
-            yield* handleNode(child);
+            rtResult += handleNode(child);
           }
-          yield flushTo(node.sourceCodeLocation!.endOffset);
+          rtResult += flushTo(node.sourceCodeLocation!.endOffset);
         } else {
           skipTo(node.sourceCodeLocation!.endOffset);
         }
       } else if (slot.slotName === undefined && isTextNode(node)) {
         for (const child of depthFirst(node)) {
-          yield* handleNode(child);
+          rtResult += handleNode(child);
         }
       }
     } else {
@@ -499,7 +510,7 @@ export async function* renderTemplateResult(
         },
       });
       for (const child of depthFirst(node)) {
-        yield* handleNode(child);
+        rtResult +=  handleNode(child);
       }
     }
     if (isElement(node)) {
@@ -507,12 +518,13 @@ export async function* renderTemplateResult(
     }
   }
 
-  yield flushTo();
+  rtResult += flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(
       `unexpected final partIndex: ${partIndex} !== ${result.values.length}`
     );
   }
+  return rtResult;
 }
 
 const getAttrValue = (

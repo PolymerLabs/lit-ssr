@@ -37,24 +37,29 @@ const { nodeResolve } = require('koa-node-resolve');
 
 process.on('unhandledRejection', up => { throw up });
 
-const appModule = importModule('./app-server.build.js', import.meta.url, window);
-
 const port = 8080;
-new Koa()
-  .use(async (ctx: koalib.Context, next: Function) => {
-    if (ctx.URL.pathname !== '/') {
-      await next();
-      return;
-    }
-    console.log('rendering /');
-    const renderApp = (await appModule).namespace.renderApp;
-    const stream = new AsyncIterableReader(renderApp());
-    ctx.type = 'text/html';
-    ctx.body = stream;
-  })
-  // cannot resolve `./mwc-tab-css` to `./mwc-tab-css.js` ??
-  .use(nodeResolve())
-  .use(staticFiles(packageRoot))
-  .listen(port, () => {
-    console.log(`Server listening on port ${port}`);
-  });
+(async () => {
+  const appModule = importModule('./app-server.build.js', import.meta.url, window);
+  const appNameSpace = (await appModule).namespace;
+  const renderApp = appNameSpace.renderApp;
+  const renderAppSync = appNameSpace.renderAppSync;
+  new Koa()
+    .use(async (ctx: koalib.Context, next: Function) => {
+      const isSync = ctx.URL.pathname === '/sync';
+      if (ctx.URL.pathname !== '/' && !isSync) {
+        await next();
+        return;
+      }
+      //console.log('rendering /');
+      const body = isSync ? renderAppSync() : new AsyncIterableReader(renderApp());
+      ctx.type = 'text/html';
+      ctx.body = body;
+    })
+    // cannot resolve `./mwc-tab-css` to `./mwc-tab-css.js` ??
+    .use(nodeResolve())
+    .use(staticFiles(packageRoot))
+    .listen(port, () => {
+      console.log(`Server listening on port ${port}`);
+    });
+})();
+

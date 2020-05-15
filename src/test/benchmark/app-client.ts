@@ -8,14 +8,21 @@ const benchmark = params.get('benchmark');
 
 declare global {
   interface Window {
-    tachometerResult: number
+    tachometerResult: number,
+    ssrTiming: {
+      parsing: number
+    }
   }
 }
 
 const measure = (callback: null|(() => void), startAt?: number) => {
   const start = startAt !== undefined ? startAt : performance.now();
   callback && callback();
-  window.tachometerResult = performance.now() - start;
+  record(performance.now() - start);
+}
+
+const record = (time: number) => {
+  window.tachometerResult = time;
   document.title = window.tachometerResult.toFixed(2) + 'ms';
 }
 
@@ -43,6 +50,10 @@ const benchmarks = {
 
   ['ssr-hydrate']() {
     measure(doHydrate, 0);
+  },
+
+  ['ssr-timing']() {
+    record(window.ssrTiming.parsing);
   }
 }
 
