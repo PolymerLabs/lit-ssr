@@ -42,14 +42,14 @@ export const startServer = async (port = 9090) => {
     const {render} = module;
     // For debugging:
     if (false) {
-      const result = render(test.render(...test.expectations[0].args), undefined);
+      const result = render(test.render(...test.expectations[0].args));
       let s = '';
       for await (const chunk of result) {
         s += chunk;
       }
       console.log('result', s);
     }
-    const result = render(test.render(...test.expectations[0].args), undefined);
+    const result = render(test.render(...test.expectations[0].args));
     context.type = 'text/html';
     context.body = new AsyncIterableReader(result);
   });
