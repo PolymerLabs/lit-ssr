@@ -20,11 +20,11 @@ import {
   markerRegex,
   TemplatePart,
   boundAttributeSuffix,
-  lastAttributeNameRegex,
+  AttributeTemplatePart,
 } from 'lit-html/lib/template.js';
 
 // types only
-import {DefaultTreeDocumentFragment, DefaultTreeNode, Attribute} from 'parse5';
+import {DefaultTreeDocumentFragment} from 'parse5';
 
 import {
   depthFirst,
@@ -34,18 +34,18 @@ import {
 } from './util/parse5-utils.js';
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import {LitElementRenderer} from './lit-element-renderer.js';
+// import {LitElementRenderer} from './lit-element-renderer.js';
 import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
 import {
   isClassMapDirective,
   ClassMapPreRenderer,
 } from './directives/class-map.js';
-import {reflectedAttributeName} from './reflected-attributes.js';
+// import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 
 const templateCache = new Map<
   TemplateStringsArray,
-  {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
+  {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[], ops: Array<Op>}
 >();
 
 type TextOp = {
@@ -53,11 +53,21 @@ type TextOp = {
   value: string,
 };
 
-type NodeParOp = {
+type NodePartOp = {
   type: 'node-part',
 };
 
-type Op = TextOp | NodeParOp;
+type AttributePartOp = {
+  type: 'attribute-part',
+};
+
+type CustomElementOp = {
+  type: 'custom-element',
+  tagName: string,
+  ctor: any,
+};
+
+type Op = TextOp | NodePartOp | AttributePartOp | CustomElementOp;
 
 const getTemplate = (result: TemplateResult) => {
   const template = templateCache.get(result.strings);
@@ -155,10 +165,12 @@ const getTemplate = (result: TemplateResult) => {
       let boundAttrsCount = 0;
 
       const tagName = node.tagName;
+      let ctor;
+
       if (tagName.indexOf('-') !== -1) {
         // Looking up the constructor here means that custom elements must be
         // registered before rendering the first template that contains them.
-        const ctor = customElements.get(tagName);
+        ctor = customElements.get(tagName);
         if (ctor !== undefined) {
           // Write the start tag
           writeTag = true;
@@ -177,12 +189,20 @@ const getTemplate = (result: TemplateResult) => {
               attr.name.length - boundAttributeSuffix.length
             );
             const strings = attr.value.split(markerRegex);
+            const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
+            const attrNameStartOffset = attrSourceLocation.startOffset;
+            const attrEndOffset = attrSourceLocation.endOffset;
             parts.push({
               type: 'attribute',
               index: nodeIndex,
               name,
               strings,
             });
+            flushTo(attrNameStartOffset);
+            ops.push({
+              type: 'attribute-part'
+            });
+            skipTo(attrEndOffset);
           }
         }
       }
@@ -195,15 +215,24 @@ const getTemplate = (result: TemplateResult) => {
         flush(`<!--lit-bindings ${nodeIndex}-->`);
       }
 
+      if (ctor !== undefined) {
+        ops.push({
+          type: 'custom-element',
+          tagName,
+          ctor,
+        });
+      }
+
     }
     nodeIndex++;
   }
-  const t = {html, ast, parts};
+  flushTo();
+  const t = {html, ast, parts, ops};
   templateCache.set(result.strings, t);
   return t;
 };
 
-const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
+// const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
 export type RenderInfo = {
   instances: Array<{tagName: string; instance?: LitElement}>;
@@ -290,7 +319,7 @@ export function* renderTemplateResult(
   // elements. For each we will record the offset of the node, and output the
   // previous span of HTML.
 
-  const {html, ast, parts: templateParts} = getTemplate(result);
+  const {ops, parts: templateParts} = getTemplate(result);
 
   /* The next value in result.values to render */
   let partIndex = 0;
@@ -301,181 +330,41 @@ export function* renderTemplateResult(
    */
   let templatePartIndex = -1;
 
-  /* The last offset of html written to the stream */
-  let lastOffset: number | undefined = 0;
+  console.log('ops', ops);
 
-  /**
-   * Returns a substring of the html from the `lastOffset` flushed to `offset`
-   * ready for yielding to the renderTemplateResult iterable.
-   */
-  const flushTo = (offset?: number) => {
-    if (lastOffset === undefined) {
-      throw new Error('lastOffset is undefined');
-    }
-    const previousLastOffset = lastOffset;
-    lastOffset = offset;
-    return html.substring(previousLastOffset, offset);
-  };
-
-  /**
-   * Sets `lastOffset` to `offset`, skipping a range of characters. This is
-   * useful for skipping <slot>s and distributed nodes in flattened mode, or
-   * skipping and re-writting lit-html marker nodes.
-   */
-  const skipTo = (offset: number) => {
-    if (lastOffset === undefined) {
-      throw new Error('lastOffset is undefined');
-    }
-    if (offset < lastOffset) {
-      throw new Error(`offset must be greater than lastOffset.
-        offset: ${offset}
-        lastOffset: ${lastOffset}
-      `);
-    }
-    lastOffset = offset;
-  };
-
-  function* handleNode(node: DefaultTreeNode) {
-    if (isCommentNode(node)) {
-      if (node.data === marker) {
-        yield flushTo(node.sourceCodeLocation!.startOffset);
-        skipTo(node.sourceCodeLocation!.endOffset);
+  for (const op of ops) {
+    switch (op.type) {
+      case 'text':
+        console.log('text', op.value);
+        yield op.value;
+        break;
+      case 'node-part': {
+        console.log('node-part');
         const value = result.values[partIndex++];
         templatePartIndex++;
         yield* renderValue(value, renderInfo);
+        break;
       }
-    } else if (isElement(node)) {
-      // If the element is custom, this will be the instantiated class
-      let instance: LitElement | undefined = undefined;
-
-      // Whether to flush the start tag. This is neccessary if we're changing
-      // any of the attributes in the tag, so it's true for custom-elements
-      // which might reflect their own state, or any element with a binding.
-      let writeTag = false;
-
-      // console.log('start element', renderInfo.instances);
-      const tagName = node.tagName;
-
-      if (tagName.indexOf('-') !== -1) {
-        const ctor = customElements.get(tagName);
-        // console.log('potentially custom element', tagName, ctor !== undefined);
-        if (ctor !== undefined) {
-          // Write the start tag
-          writeTag = true;
-
-          // Instantiate the element and stream its render() result
-          try {
-            instance = new ctor();
-            renderInfo.instances[
-              renderInfo.instances.length - 1
-            ].instance = instance;
-          } catch (e) {
-            console.error('Exception in custom element constructor', e);
-          }
-        }
+      case 'attribute-part': {
+        templatePartIndex++;
+        const templatePart = templateParts[templatePartIndex] as AttributeTemplatePart;
+        console.log('attribute-part', templatePartIndex, templatePart);
+        // const stringForPart = result.strings[partIndex];
+        // const name = lastAttributeNameRegex.exec(stringForPart)![2];
+        const statics = templatePart.strings;
+        let attributeName = templatePart.name;
+        const attributeString = `${attributeName}="${getAttrValue(statics, result, partIndex)}"`;
+        // attr.value has the raw attribute value, which may contain multiple
+        // bindings. Replace the markers with their resolved values.
+        partIndex += statics.length - 1;
+        yield attributeString;
+        break;
       }
-
-      // Handle attributes
-
-      let boundAttrsCount = 0;
-      for (const attr of node.attrs) {
-        if (attr.name.endsWith('$lit$')) {
-          const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
-          const stringForPart = result.strings[partIndex];
-          const name = lastAttributeNameRegex.exec(stringForPart)![2];
-          const attrNameStartOffset = attrSourceLocation.startOffset;
-          const attrEndOffset = attrSourceLocation.endOffset;
-          const statics = attr.value.split(markerRegex);
-          let attributeName = attr.name.substring(
-            0,
-            attr.name.length - boundAttributeSuffix.length
-          );
-          yield html.substring(lastOffset!, attrNameStartOffset);
-
-          if (name.startsWith('.')) {
-            // Property binding
-            const propertyName = name.substring(1);
-
-            let value: unknown;
-            if (statics.length === 2) {
-              // Single-expression property binding
-              value = result.values[partIndex++];
-            } else {
-              // Multi-expression property binding
-              value = getAttrValue(attr, result, partIndex);
-              partIndex += statics.length - 1;
-            }
-            if (instance !== undefined) {
-              (instance as any)[propertyName] = value;
-            }
-            // Property should be reflected to attribute
-            const reflectedName = reflectedAttributeName(tagName, propertyName);
-
-            if (reflectedName !== undefined) {
-              yield `${reflectedName}="${value}"`;
-            }
-          } else if (name.startsWith('@')) {
-            // Event binding
-            // do nothing with values
-            partIndex += statics.length - 1;
-          } else if (name.startsWith('?')) {
-            // Boolean attribute binding
-            attributeName = attributeName.substring(1);
-            if (
-              statics.length !== 2 ||
-              statics[0] !== '' ||
-              statics[1] !== ''
-            ) {
-              throw new Error(
-                'Boolean attributes can only contain a single expression'
-              );
-            }
-            const value = result.values[partIndex++];
-            if (value) {
-              yield attributeName;
-            }
-          } else {
-            let attributeString = `${attributeName}="`;
-            // attr.value has the raw attribute value, which may contain multiple
-            // bindings. Replace the markers with their resolved values.
-            attributeString += getAttrValue(attr, result, partIndex);
-            partIndex += statics.length - 1;
-            yield attributeString + '"';
-          }
-          skipTo(attrEndOffset);
-          boundAttrsCount += 1;
-          templatePartIndex++;
-        }
-      }
-
-      if (writeTag || boundAttrsCount > 0) {
-        yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
-      }
-
-      if (boundAttrsCount > 0) {
-        const templatePart = templateParts[templatePartIndex];
-        // templatePart.index is the depth-first node index of the parent node
-        // of this comment.
-        yield `<!--lit-bindings ${templatePart.index}-->`;
-      }
-
-      if (instance !== undefined) {
-        // TODO: look up a renderer instead of creating one
-        const renderer = new LitElementRenderer();
-        yield* renderer.renderElement(instance as LitElement, renderInfo);
-      }
-      // console.log('end element', node.tagName, renderInfo.instances);
-      // renderInfo.instances.pop();
+      case 'custom-element':
+        break;
     }
   }
 
-  if (ast.childNodes === undefined) {
-    return;
-  }
-  for (const child of depthFirst(ast)) {
-    yield* handleNode(child);
-  }
-  yield flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(
       `unexpected final partIndex: ${partIndex} !== ${result.values.length}`
@@ -484,15 +373,19 @@ export function* renderTemplateResult(
 }
 
 const getAttrValue = (
-  attr: Attribute,
+  strings: ReadonlyArray<string>,
   result: TemplateResult,
   startIndex: number
-) =>
-  attr.value.replace(globalMarkerRegex, () => {
-    const value = result.values[startIndex++];
+) => {
+  let s = strings[0];
+  for (let i = 0; i < strings.length - 1; i++) {
+    const value = result.values[startIndex + i];
     if (isClassMapDirective(value)) {
-      return (value as ClassMapPreRenderer)();
+      s += (value as ClassMapPreRenderer)();
     } else {
-      return String(value);
+      s += String(value);
     }
-  });
+    s += strings[i + 1];
+  }
+  return s;
+};
