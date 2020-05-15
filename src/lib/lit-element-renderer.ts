@@ -37,9 +37,9 @@ export class LitElementRenderer implements ElementRenderer {
     if (renderInfo.flattened) {
       yield* render(renderResult, childRenderer, renderInfo.flattened);
     } else {
-      yield '<shadow-root>';
+      yield '<template shadowroot="open">';
       yield* render(renderResult, childRenderer, renderInfo.flattened);
-      yield '</shadow-root>';
+      yield '</template>';
     }
   }
 
