@@ -43,8 +43,6 @@ import {
 import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 
-const traverse = require('parse5-traverse');
-
 const templateCache = new Map<
   TemplateStringsArray,
   {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
@@ -362,36 +360,12 @@ export function* renderTemplateResult(
     }
   }
 
-  // At the top-level of a TemplateResult we may have nodes that are children of
-  // an element with slots, so we need to handle top-level nodes specially in an
-  // outer loop. From there we perform a depth-first traversal.
   if (ast.childNodes === undefined) {
     return;
   }
-  for (const node of ast.childNodes) {
-    if (isElement(node)) {
-      renderInfo.instances.push({tagName: node.tagName});
-    }
-    traverse(node, {
-      pre(node: DefaultTreeNode, _parent: DefaultTreeNode) {
-        if (isElement(node)) {
-          renderInfo.instances.push({tagName: node.tagName});
-        }
-      },
-      post(node: DefaultTreeNode, _parent: DefaultTreeNode) {
-        if (isElement(node)) {
-          renderInfo.instances.pop();
-        }
-      },
-    });
-    for (const child of depthFirst(node)) {
-      yield* handleNode(child);
-    }
-    if (isElement(node)) {
-      renderInfo.instances.pop();
-    }
+  for (const child of depthFirst(ast)) {
+    yield* handleNode(child);
   }
-
   yield flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(
