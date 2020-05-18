@@ -29,14 +29,14 @@ export function renderAppSync() {
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     </head>
     <body>
-  ${renderSync(template(data), undefined, false)}
+  ${renderSync(template(data))}
   <script>window.ssrTiming = ${JSON.stringify(timingSync)};</script>
   <script src="./test/benchmark/app-client.build.js"></script>
   </body>
   </html>`;
 };
 
-export async function* renderApp() {
+export function* renderApp() {
   yield `
     <!doctype html>
     <html>
@@ -48,7 +48,7 @@ export async function* renderApp() {
       <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
     </head>
     <body>`;
-  yield* render(template(data), undefined, false);
+  yield* render(template(data));
   yield `<script>window.ssrTiming = ${JSON.stringify(timing)};</script>`
   yield `<script src="./test/benchmark/app-client.build.js"></script>`;
   yield `</body>

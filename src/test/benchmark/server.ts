@@ -17,7 +17,7 @@ import { window } from '../../lib/dom-shim.js';
 import * as koalib from 'koa';
 import { URL } from 'url';
 import * as path from 'path';
-import {AsyncIterableReader} from '../../lib/util/async-iterator-readable.js';
+import {IterableReader} from '../../lib/util/iterator-readable.js';
 import {importModule} from '../../lib/import-module.js';
 
 const { createRequire } = module as any;
@@ -51,7 +51,7 @@ const port = 8080;
         return;
       }
       //console.log('rendering /');
-      const body = isSync ? renderAppSync() : new AsyncIterableReader(renderApp());
+      const body = isSync ? renderAppSync() : new IterableReader(renderApp());
       ctx.type = 'text/html';
       ctx.body = body;
     })

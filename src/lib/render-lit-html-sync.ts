@@ -41,10 +41,8 @@ import {
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {
-  LitHtmlChildRenderer,
   LitElementRenderer,
 } from './lit-element-renderer.js';
-import {ChildRenderer} from './element-renderer.js';
 import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
 import {
   isClassMapDirective,
@@ -133,7 +131,6 @@ type SlotInfo = {
 
 export type RenderInfo = {
   slot?: SlotInfo;
-  flattened: boolean;
   instances: Array<{tagName: string; instance?: LitElement}>;
 };
 
@@ -160,17 +157,14 @@ export const getScopedStyles = () => {
   return scopedStyles;
 };
 export function render(
-  value: unknown,
-  childRenderer: ChildRenderer | undefined,
-  flattened: boolean = false
+  value: unknown
 ): string {
   resetTiming();
-  return renderValue(value, childRenderer, {flattened, instances: []});
+  return renderValue(value, {instances: []});
 }
 
 export function renderValue(
   value: unknown,
-  childRenderer: ChildRenderer | undefined,
   renderInfo: RenderInfo
 ): string {
   // flattened = flattened ?? true;
@@ -186,13 +180,13 @@ export function renderValue(
   let result = '';
   if (value instanceof TemplateResult) {
     result +=  `<!--lit-part ${value.digest}-->`;
-    result += renderTemplateResult(value, childRenderer, new Set(), renderInfo);
+    result += renderTemplateResult(value, new Set(), renderInfo);
   } else {
     result += `<!--lit-part-->`;
     if (value === undefined || value === null) {
       // do nothing
     } else if (isRepeatDirective(value)) {
-      result += (value as RepeatPreRenderer)(childRenderer, renderInfo);
+      result += (value as RepeatPreRenderer)(renderInfo);
     } else if (isRenderLightDirective(value)) {
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
@@ -200,13 +194,13 @@ export function renderValue(
       // TODO, move out of here into something LitElement specific
       if (instance.instance !== undefined) {
         const templateResult = (instance.instance as any).renderLight();
-        result += renderValue(templateResult, childRenderer, renderInfo);
+        result += renderValue(templateResult, renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {
-        result += renderValue(item, childRenderer, renderInfo);
+        result += renderValue(item, renderInfo);
       }
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
@@ -219,7 +213,6 @@ export function renderValue(
 
 export function renderTemplateResult(
   result: TemplateResult,
-  childRenderer: ChildRenderer | undefined,
   claimedNodes: Set<Node> = new Set(),
   renderInfo: RenderInfo /* = {flattened: true} */
 ): string {
@@ -311,7 +304,7 @@ export function renderTemplateResult(
             nodeResult += `<!--lit-part--><!--/lit-part-->`;
           }
         } else {
-          nodeResult += renderValue(value, childRenderer, renderInfo);
+          nodeResult += renderValue(value, renderInfo);
         }
       }
     } else if (isElement(node)) {
@@ -333,16 +326,7 @@ export function renderTemplateResult(
         // console.log('start element', renderInfo.instances);
         const tagName = node.tagName;
 
-        if (tagName === 'slot' && renderInfo.flattened) {
-          nodeResult += flushTo(node.sourceCodeLocation!.startTag.startOffset);
-          const slotName = getAttr(node, 'name');
-
-          if (childRenderer !== undefined) {
-            nodeResult += childRenderer.renderChildren(slotName);
-          }
-
-          skipTo(node.sourceCodeLocation!.endOffset);
-        } else if (tagName.indexOf('-') !== -1) {
+        if (tagName.indexOf('-') !== -1) {
           const ctor = customElements.get(tagName);
           // console.log('potentially custom element', tagName, ctor !== undefined);
           if (ctor !== undefined) {
@@ -446,21 +430,12 @@ export function renderTemplateResult(
         }
 
         if (instance !== undefined) {
-          const childRenderer = new LitHtmlChildRenderer(
-            node.childNodes,
-            html,
-            result,
-            partIndex,
-            claimedNodes
-          );
           // TODO: look up a renderer instead of creating one
           const renderer = new LitElementRenderer();
           nodeResult += renderer.renderElement(
             instance as LitElement,
-            childRenderer,
             renderInfo
           );
-          distributedIndex = childRenderer.renderedPartIndex;
         }
         // console.log('end element', node.tagName, renderInfo.instances);
         // renderInfo.instances.pop();
