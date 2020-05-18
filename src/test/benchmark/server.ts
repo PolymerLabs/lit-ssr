@@ -42,16 +42,24 @@ const port = 8080;
   const appModule = importModule('./app-server.build.js', import.meta.url, window);
   const appNameSpace = (await appModule).namespace;
   const renderApp = appNameSpace.renderApp;
-  const renderAppSync = appNameSpace.renderAppSync;
   new Koa()
     .use(async (ctx: koalib.Context, next: Function) => {
-      const isSync = ctx.URL.pathname === '/sync';
-      if (ctx.URL.pathname !== '/' && !isSync) {
+      const isNoStream = ctx.URL.pathname === '/nostream';
+      if (ctx.URL.pathname !== '/' && !isNoStream) {
         await next();
         return;
       }
       //console.log('rendering /');
-      const body = isSync ? renderAppSync() : new IterableReader(renderApp());
+      let body;
+      if (isNoStream) {
+        body = '';
+        const appStream = renderApp();
+        for (let value of appStream) {
+          body += value;
+        }
+      } else {
+        body = new IterableReader(renderApp());
+      }
       ctx.type = 'text/html';
       ctx.body = body;
     })

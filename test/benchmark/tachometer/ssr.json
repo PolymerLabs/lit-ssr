@@ -12,8 +12,8 @@
       "name": "lit-ssr",
       "url": "http://localhost:8080?benchmark=ssr"
     },{
-      "name": "lit-ssr-sync",
-      "url": "http://localhost:8080/sync?benchmark=ssr"
+      "name": "lit-ssr-nostream",
+      "url": "http://localhost:8080/nostream?benchmark=ssr"
     },{
       "name": "react-ssr",
       "url": "http://localhost:8090?benchmark=ssr"

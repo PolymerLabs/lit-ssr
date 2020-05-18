@@ -25,12 +25,21 @@ export class IterableReader<T> extends Readable {
     this._iterator = iterable[Symbol.iterator]();
   }
 
-  _read(_size: number) {
+  _read(size: number) {
+    let result = '';
     try {
-      const r = this._iterator.next();
-      this.push(r.done ? null : r.value);
+      do {
+        const next = this._iterator.next();
+        if (next.done) {
+          break;
+        }
+        result += next.value;
+      } while (result.length < size);
     } catch (e) {
       this.emit('error', e);
+    } finally {
+      // Note, must push null when stream is done.
+      this.push(result || null);
     }
   }
 }

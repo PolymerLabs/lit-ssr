@@ -13,27 +13,8 @@
  */
 
 import { render} from '../../lib/render-lit-html.js';
-import { render as renderSync} from '../../lib/render-lit-html-sync.js';
 import { template } from './module.js';
 import { data } from './data.js';
-
-export function renderAppSync() {
-  return `
-    <!doctype html>
-    <html>
-    <head>
-      <meta charset="utf-8">
-      <title>Mail (MWC)</title>
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <link rel="stylesheet" href="/test/benchmark/app.css">
-      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-    </head>
-    <body>
-  ${renderSync(template(data))}
-  <script src="./test/benchmark/app-client.build.js"></script>
-  </body>
-  </html>`;
-};
 
 export function* renderApp() {
   yield `
