@@ -12,8 +12,8 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import { render, timing} from '../../lib/render-lit-html.js';
-import { render as renderSync, timing as timingSync} from '../../lib/render-lit-html-sync.js';
+import { render} from '../../lib/render-lit-html.js';
+import { render as renderSync} from '../../lib/render-lit-html-sync.js';
 import { template } from './module.js';
 import { data } from './data.js';
 
@@ -30,7 +30,6 @@ export function renderAppSync() {
     </head>
     <body>
   ${renderSync(template(data))}
-  <script>window.ssrTiming = ${JSON.stringify(timingSync)};</script>
   <script src="./test/benchmark/app-client.build.js"></script>
   </body>
   </html>`;
@@ -49,7 +48,6 @@ export function* renderApp() {
     </head>
     <body>`;
   yield* render(template(data));
-  yield `<script>window.ssrTiming = ${JSON.stringify(timing)};</script>`
   yield `<script src="./test/benchmark/app-client.build.js"></script>`;
   yield `</body>
     </html>`;
