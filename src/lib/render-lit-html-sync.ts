@@ -50,7 +50,6 @@ import {
 } from './directives/class-map.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
-const { performance } = require('perf_hooks');
 const traverse = require('parse5-traverse');
 
 const templateCache = new Map<
@@ -63,7 +62,6 @@ const getTemplate = (result: TemplateResult) => {
   if (template !== undefined) {
     return template;
   }
-  const start = performance.now();
   const html = result.getHTML();
   const ast = parseFragment(html, {
     sourceCodeLocationInfo: true,
