@@ -100,12 +100,6 @@ export const window = {
   window: undefined as any,
   customElements: new CustomElementRegistry(),
   console,
-  btoa,
-  // Required by mwc-ripple.
-  // TODO: Make mwc-ripple SSR-friendly and remove this.
-  navigator: { userAgent: '' },
-  // Required by mwc-icon
-  // TODO: Make mwc-icon SSR-friendly and remove this.
-  document: { createElement: () => ({}), head: { appendChild: () => {} } },
+  btoa
 };
 window.window = window;

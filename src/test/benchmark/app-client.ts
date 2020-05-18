@@ -50,11 +50,8 @@ const benchmarks = {
 
   ['ssr-hydrate']() {
     measure(doHydrate, 0);
-  },
-
-  ['ssr-timing']() {
-    record(window.ssrTiming.parsing);
   }
+
 }
 
 const test = (benchmarks as any)[benchmark!];

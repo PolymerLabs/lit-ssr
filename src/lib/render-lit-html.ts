@@ -44,12 +44,6 @@ import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 const { performance } = require('perf_hooks');
 
-export const timing = {
-  parsing: 0,
-  getTemplate: 0,
-  total: 0
-}
-
 const templateCache = new Map<
   TemplateStringsArray,
   {html: string; ast: DefaultTreeDocumentFragment; parts: TemplatePart[]}
@@ -65,7 +59,6 @@ const getTemplate = (result: TemplateResult) => {
   const ast = parseFragment(html, {
     sourceCodeLocationInfo: true,
   }) as DefaultTreeDocumentFragment;
-  timing.parsing += performance.now() - start;
   const parts: Array<TemplatePart> = [];
 
   // Depth-first node index. Initialized to -1 so that the first child node is
@@ -106,7 +99,6 @@ const getTemplate = (result: TemplateResult) => {
   }
   const t = {html, ast, parts};
   templateCache.set(result.strings, t);
-  timing.getTemplate += performance.now() - start;
   return t;
 };
 
