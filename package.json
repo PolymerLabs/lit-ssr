@@ -45,13 +45,6 @@
     "typescript": "^3.7.2"
   },
   "dependencies": {
-    "@material/mwc-button": "^0.6.0",
-    "@material/mwc-checkbox": "^0.6.0",
-    "@material/mwc-fab": "^0.6.0",
-    "@material/mwc-icon": "^0.6.0",
-    "@material/mwc-icon-button": "^0.6.0",
-    "@material/mwc-tab": "^0.6.0",
-    "@material/mwc-tab-bar": "^0.6.0",
     "@types/koa": "^2.0.49",
     "@types/koa-static": "^4.0.1",
     "@types/tape": "^4.2.33",
