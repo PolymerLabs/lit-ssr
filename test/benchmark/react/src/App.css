@@ -23,11 +23,13 @@ body {
   height: 100%;
 }
 
-.material-icons, mwc-fab, mwc-icon, mwc-icon-button, mwc-checkbox {
+.material-icons, mwc-icon, mwc-icon-button, mwc-checkbox {
   font-family: 'Material Icons';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
+  height: 24px;
+  width: 24px;
   line-height: 1;
   letter-spacing: normal;
   text-transform: none;
@@ -73,11 +75,6 @@ mwc-fab > * {
 
 .mail-item > mwc-checkbox, .mail-item > mwc-icon-button {
   margin: 4px;
-}
-
-mwc-fab > *, mwc-icon > *, mwc-icon-button > *, mwc-checkbox > * {
-  font-family: Roboto, sans-serif;
-  font-size: 15px;
 }
 
 .one-bar {

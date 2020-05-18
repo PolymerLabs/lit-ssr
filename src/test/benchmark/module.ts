@@ -38,7 +38,7 @@ export const template = (mail: Array<{sender: string, subject: string, date: str
 <div class="main">
 <div class="main-nav">
   <div class="compose-fab-container">
-    <mwc-fab class="compose-mail-fab" extended>add<label slot="label">Compose</label></mwc-fab>
+    <mwc-fab class="compose-mail-fab" extended><mwc-icon>add</mwc-icon><label slot="label">Compose</label></mwc-fab>
   </div>
   <ul class="folder-list">
     <li class="mdc-list-item">
