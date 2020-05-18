@@ -33,11 +33,7 @@ export async function* renderApp(data: any) {
         <div>`;
 
   // Call the SSR render() function to render a client/server shared template.
-  yield* render(
-    template(data.name, data.message, data.items),
-    undefined,
-    false
-  );
+  yield* render(template(data.name, data.message, data.items));
 
   yield `
         </div>

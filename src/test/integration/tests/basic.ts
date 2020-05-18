@@ -797,7 +797,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'PropertyPart accepts noChange': {
-    // TODO: Test currently fails: SSR does not currently accept noChange in 
+    // TODO: Test currently fails: SSR does not currently accept noChange in
     // property position. To fix.
     skip: true,
     render(x: any) {
@@ -1220,16 +1220,16 @@ export const tests: {[name: string] : SSRTest} = {
 
   'NodeParts & AttributeParts soup': {
     render(x, y, z) {
-      return html`<div>${x}</div><span a1="${y}" a2="${y}">${x}<p a="${y}">${y}</p>${z}</span>`;
+      return html`text:${x}<div>${x}</div><span a1="${y}" a2="${y}">${x}<p a="${y}">${y}</p>${z}</span>`;
     },
     expectations: [
       {
         args: [html`<a></a>`, 'b', 'c'],
-        html: '<div><a></a></div><span a1="b" a2="b"><a></a><p a="b">b</p>c</span>',
+        html: 'text:<a></a><div><a></a></div><span a1="b" a2="b"><a></a><p a="b">b</p>c</span>',
       },
       {
         args: ['x', 'y', html`<i></i>`],
-        html: '<div>x</div><span a1="y" a2="y">x<p a="y">y</p><i></i></span>',
+        html: 'text:\nx<div>x</div><span a1="y" a2="y">x<p a="y">y</p><i></i></span>',
       }
     ],
     stableSelectors: ['div', 'span', 'p'],

@@ -1,7 +1,6 @@
 import { renderValue, RenderInfo } from '../render-lit-html.js';
-import { ChildRenderer } from '../element-renderer.js';
 
-export type RepeatPreRenderer = (childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo) => AsyncIterableIterator<string>;
+export type RepeatPreRenderer = (renderInfo: RenderInfo) => IterableIterator<string>;
 
 const directives = new WeakMap<RepeatPreRenderer, true>();
 
@@ -32,10 +31,10 @@ export const repeat = <T>(items: Iterable<T>,
    * The function that will be called upon to pre-render the list of items using
    * the template function.
    */
-  const doRepeat = async function* (childRenderer: ChildRenderer|undefined, renderInfo: RenderInfo): AsyncIterableIterator<string> {
+  const doRepeat = function* (renderInfo: RenderInfo): IterableIterator<string> {
     let i = 0;
     for (const item of items) {
-      yield* renderValue(template!(item, i), childRenderer, renderInfo);
+      yield* renderValue(template!(item, i), renderInfo);
       i++;
     }
   }

@@ -61,7 +61,7 @@
     "koa": "^2.7.0",
     "koa-node-resolve": "^1.0.0-pre.5",
     "koa-static": "^5.0.0",
-    "lit-element": "^2.3.0",
+    "lit-element": "^2.3.1",
     "lit-html": "^1.2.0",
     "parse5": "^5.1.0",
     "parse5-traverse": "^1.0.3",
