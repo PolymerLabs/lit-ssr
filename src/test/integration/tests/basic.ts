@@ -797,7 +797,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'PropertyPart accepts noChange': {
-    // TODO: Test currently fails: SSR does not currently accept noChange in 
+    // TODO: Test currently fails: SSR does not currently accept noChange in
     // property position. To fix.
     skip: true,
     render(x: any) {

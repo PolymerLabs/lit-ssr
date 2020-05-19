@@ -1,0 +1,189 @@
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+body {
+  margin: 0;
+  font-family: Roboto, sans-serif;
+  font-size: 15px;
+  color: #5f6368;
+  background-color: #f5f5f5;
+  --mdc-theme-primary: #FF0266;
+  --mdc-theme-secondary: #FF0266;
+}
+@font-face {
+  font-family: 'Material Icons';
+  font-style: normal;
+  font-weight: 400;
+  src: url(https://fonts.gstatic.com/s/materialicons/v47/flUhRq6tzZclQEJ-Vdg-IuiaDsNcIhQ8tQ.woff2) format('woff2');
+}
+
+one-bar {
+  display: block;
+}
+
+one-bar:not(:defined) {
+  height: 64px;
+}
+
+.material-icons, mwc-icon, mwc-icon-button, mwc-checkbox {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  height: 24px;
+  width: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+mwc-fab {
+  display: inline-flex;
+  align-items: center;
+  box-shadow: 0 1px 2px 0 rgba(60,64,67,0.302), 0 1px 3px 1px rgba(60,64,67,0.149);
+  background-color: #fff;
+  background-image: none;
+  border-radius: 24px;
+  color: #3c4043;
+  font-weight: 500;
+  height: 48px;
+  min-width: 56px;
+  padding: 0 24px 0 0;
+  text-transform: none;
+  padding-left: 8px;
+}
+
+mwc-fab > * {
+  padding: 8px;
+}
+
+.star, .important {
+  color: teal;
+}
+
+.unread, .favorite {
+  color: steelblue;
+}
+
+.odd {
+  background:#eee;
+}
+
+.mail-item > mwc-checkbox, .mail-item > mwc-icon-button {
+  margin: 4px;
+}
+
+.one-bar {
+  border-bottom: 1px solid #e3e3e3;
+}
+.compose-fab-container {
+  margin: 16px 0 0 12px;
+}
+.main {
+  display: flex;
+  height: calc(100% - 64px);
+}
+.main-nav {
+  min-width: 256px;
+}
+.folder-list {
+  list-style: none;
+  padding-inline-start: 0;
+}
+.folder-list > li {
+  display: flex;
+  align-items: center;
+  padding: 4px 0;
+}
+.mdc-list.folder-list,
+mdc-list.folder-list {
+  padding: 16px 16px 0 0 !important;
+}
+.folder-list > .mdc-list-item,
+.folder-list > mdc-list-item {
+  padding-left: 16px !important;
+  border-radius: 0 32px 32px 0;
+}
+.mdc-list-item > mwc-icon {
+  padding-right: 16px;
+}
+.main-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.main-body-header {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px 8px 4px;
+}
+.main-body-header > * {
+  padding: 4px;
+}
+.main-body-content {
+  background-color: #fff;
+  overflow-y: auto;
+}
+.flex {
+  flex: 1;
+}
+.mail-tabs {
+  display: block;
+  width: 300px !important;
+}
+.mail-tabs > * {
+  display: inline-block;
+  padding: 16px;
+}
+.mail-tabs > [active] {
+  border-bottom: 2px solid steelblue;
+}
+.mail-last-range {
+  font-size: 0.9em;
+}
+.mail-list {
+  display: flex;
+  flex-direction: column;
+
+}
+.mail-item {
+  display: flex;
+  align-items: center;
+  padding: 0 8px 0 5px;
+  border-top: 1px solid #ddd;
+}
+.sender {
+  margin-left: 24px;
+  width: 180px;
+  font-weight: 555;
+  font-size: 14px;
+  color: #111111;
+}
+.subject {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 555;
+  font-size: 14px;
+  color: #111111;
+}
+.date {
+  display: flex;
+  justify-content: flex-end;
+  width: 100px;
+  margin: 0 8px;
+  font-weight: 555;
+  font-size: 12px;
+  color: #111111;
+}

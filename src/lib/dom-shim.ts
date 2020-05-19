@@ -100,6 +100,6 @@ export const window = {
   window: undefined as any,
   customElements: new CustomElementRegistry(),
   console,
-  btoa,
+  btoa
 };
 window.window = window;

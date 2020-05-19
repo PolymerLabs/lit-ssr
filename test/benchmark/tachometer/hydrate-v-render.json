@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/Polymer/tachometer/master/config.schema.json",
+  "timeout": 0,
+  "sampleSize": 50,
+  "benchmarks": [{
+    "measurement": "global",
+    "browser": {
+      "name": "chrome",
+      "headless": true
+    },
+    "expand": [{
+      "name": "lit-hydrate",
+      "url": "http://localhost:8080?benchmark=hydrate"
+    },{
+      "name": "lit-render",
+      "url": "http://localhost:8090?benchmark=render"
+    }]
+  }]
+}
