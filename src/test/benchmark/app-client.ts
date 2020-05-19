@@ -1,7 +1,11 @@
+import './hydrate-shadowroots';
 import {template} from './module.js';
 import { data } from './data.js';
 import {render} from 'lit-html';
 import {hydrate} from 'lit-html/lib/hydrate.js';
+import { LitElement } from 'lit-element';
+
+(LitElement as any).hydrate = hydrate;
 
 const params = new URLSearchParams(window.location.search);
 const benchmark = params.get('benchmark');

@@ -15,7 +15,7 @@
 import { html } from 'lit-html';
 // import { repeat } from 'lit-html/directives/repeat.js';
 
-// import './components/one-bar.js';
+import './components/one-bar.js';
 // import '@material/mwc-checkbox';
 // import '@material/mwc-fab';
 // import '@material/mwc-icon';
@@ -34,7 +34,7 @@ import { html } from 'lit-html';
 export const template = (mail: Array<{sender: string, subject: string, date: string,
   unread: boolean, favorite: boolean, star: boolean, important: boolean}>) => html`
 <!-- needs scoped styling -->
-<!-- <one-bar></one-bar> -->
+<one-bar></one-bar>
 <div class="main">
 <div class="main-nav">
   <div class="compose-fab-container">
