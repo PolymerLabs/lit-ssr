@@ -3,7 +3,7 @@
  */
 
 import {html} from 'lit-html';
-import {LitElement, css} from 'lit-element';
+import {LitElement, css, property} from 'lit-element';
 //import {repeat} from 'lit-html/directives/repeat.js';
 
 export const initialData = {
@@ -12,44 +12,38 @@ export const initialData = {
   items: ['foo', 'bar', 'qux'],
   prop: 'prop-value',
   attr: 'attr-value',
-  hasUpdated: false
+  wasUpdated: false
 };
 
 export class MyElement extends LitElement {
 
-  static get properties() {
-    return {
-      prop: {type: String},
-      attr: {type: String},
-      hasUpdated: {type: Boolean, reflect: true}
+  static styles = css`
+    :host {
+      display: inline-block;
+      border: 1px dashed gray;
+      margin: 4px;
+      padding: 4px;
     }
-  }
 
-  static get styles() {
-    return css`
-      :host {
-        display: inline-block;
-        border: 1px dashed gray;
-        margin: 4px;
-        padding: 4px;
-      }
+    :host > * {
+      padding: 4px;
+    }
 
-      :host > * {
-        padding: 4px;
-      }
+    header {
+      font-weight: bold;
+    }
 
-      header {
-        font-weight: bold;
-      }
+    :host([wasUpdated]) {
+      background: lightgreen;
+    }
+  `;
 
-      :host([hasUpdated]) {
-        background: lightgreen;
-      }
-    `;
-  }
-
+  @property({type: String})
   prop = 'initial-prop';
+  @property({type: String})
   attr = 'initial-attr';
+  @property({type: Boolean, reflect: true})
+  wasUpdated = false;
 
   render() {
     return html`
@@ -66,7 +60,7 @@ export const header = (name: string) =>
     <h1>Hello ${name}!</h1>
   `;
 
-export const template = (data: {name: string, message: string, items: Array<string>, prop: string, attr: string, hasUpdated: boolean}) =>
+export const template = (data: {name: string, message: string, items: Array<string>, prop: string, attr: string, wasUpdated: boolean}) =>
   html`
     ${header(data.name)}
     <p>${data.message}</p>
@@ -80,6 +74,6 @@ export const template = (data: {name: string, message: string, items: Array<stri
       )}
     </div>
     ${Array(3).fill(1).map((_item, i) => html`
-      <my-element ?hasUpdated=${data.hasUpdated} .prop=${`${data.prop}: ${i}`} attr=${`${data.attr}: ${i}`}></my-element>
+      <my-element ?wasUpdated=${data.wasUpdated} .prop=${`${data.prop}: ${i}`} attr=${`${data.attr}: ${i}`}></my-element>
     `)}
   `;
