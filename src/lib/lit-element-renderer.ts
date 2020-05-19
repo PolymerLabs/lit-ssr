@@ -35,9 +35,7 @@ export class LitElementRenderer implements ElementRenderer {
     yield '</shadow-root>';
   }
 
-  *renderStyles(
-    _elementClass: Constructor<HTMLElement>
-  ): Iterator<string> {
+  *renderStyles(_elementClass: Constructor<HTMLElement>): Iterator<string> {
     const scopedStyles = [];
     for (const [tagName, definition] of (customElements as any).__definitions) {
       const styles = [(definition.ctor as any).styles].flat(Infinity);
