@@ -103,7 +103,11 @@ const getTemplate = (result: TemplateResult) => {
 const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
 export type RenderInfo = {
-  instances: Array<{tagName: string; instance?: LitElement}>;
+  instances: Array<{
+    tagName: string;
+    instance?: LitElement;
+    renderer?: LitElementRenderer;
+  }>;
 };
 
 declare global {
@@ -111,16 +115,6 @@ declare global {
     flat(depth: number): Array<T>;
   }
 }
-
-const setAttributeToElement = (
-  element: LitElement,
-  name: string,
-  value: unknown
-) => {
-  if (element.attributeChangedCallback) {
-    element.attributeChangedCallback(name, null, value as string);
-  }
-};
 
 /**
  * Returns the scoped style sheets required by all elements currently defined.
@@ -159,10 +153,8 @@ export function* renderValue(
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
       const instance = renderInfo.instances[renderInfo.instances.length - 1];
-      // TODO, move out of here into something LitElement specific
-      if (instance.instance !== undefined) {
-        const templateResult = (instance.instance as any).renderLight();
-        yield* renderValue(templateResult, renderInfo);
+      if (instance?.renderer !== undefined) {
+        yield* instance.renderer.renderLight(renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
@@ -252,8 +244,8 @@ export function* renderTemplateResult(
         yield* renderValue(value, renderInfo);
       }
     } else if (isElement(node)) {
-      // If the element is custom, this will be the instantiated class
-      let instance: LitElement | undefined = undefined;
+      // If the element is custom, this will be a renderer for the instantiated class
+      let elementRenderer: LitElementRenderer | undefined = undefined;
 
       // Whether to flush the start tag. This is neccessary if we're changing
       // any of the attributes in the tag, so it's true for custom-elements
@@ -272,11 +264,12 @@ export function* renderTemplateResult(
 
           // Instantiate the element and stream its render() result
           try {
-            instance = new ctor();
-            (instance as any).tagName = node.tagName;
-            // renderInfo.instances[
-            //   renderInfo.instances.length - 1
-            // ].instance = instance;
+            elementRenderer = new LitElementRenderer(new ctor(), node.tagName);
+            const currentInstance =
+              renderInfo.instances[renderInfo.instances.length - 1];
+            if (currentInstance !== undefined) {
+              currentInstance.renderer = elementRenderer;
+            }
           } catch (e) {
             console.error('Exception in custom element constructor', e);
           }
@@ -314,8 +307,8 @@ export function* renderTemplateResult(
               partIndex += statics.length - 1;
             }
             // Set property into element instance
-            if (instance !== undefined) {
-              (instance as any)[propertyName] = value;
+            if (elementRenderer !== undefined) {
+              elementRenderer.setProperty(propertyName, value);
             }
             // Property should be reflected to attribute
             const reflectedName = reflectedAttributeName(tagName, propertyName);
@@ -342,8 +335,8 @@ export function* renderTemplateResult(
             const value = result.values[partIndex++];
             if (value) {
               // Set attribute into element instance
-              if (instance !== undefined) {
-                setAttributeToElement(instance, attributeName, value);
+              if (elementRenderer !== undefined) {
+                elementRenderer.setAttribute(attributeName, value as string);
               }
               yield attributeName;
             }
@@ -353,8 +346,8 @@ export function* renderTemplateResult(
             // bindings. Replace the markers with their resolved values.
             const value = getAttrValue(attr, result, partIndex);
             // Set attribute into element instance
-            if (instance !== undefined) {
-              setAttributeToElement(instance, attributeName, value);
+            if (elementRenderer !== undefined) {
+              elementRenderer.setAttribute(attributeName, value);
             }
             attributeString += value;
             partIndex += statics.length - 1;
@@ -377,13 +370,12 @@ export function* renderTemplateResult(
         yield `<!--lit-bindings ${templatePart.index}-->`;
       }
 
-      if (instance !== undefined) {
+      if (elementRenderer !== undefined) {
         // TODO: look up a renderer instead of creating one
-        const renderer = new LitElementRenderer();
-        yield* renderer.renderElement(instance as LitElement, renderInfo);
+        yield* elementRenderer.renderElement();
       }
       // console.log('end element', node.tagName, renderInfo.instances);
-      // renderInfo.instances.pop();
+      renderInfo.instances.pop();
     }
   }
 

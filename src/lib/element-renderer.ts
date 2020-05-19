@@ -1,7 +1,5 @@
 /// <reference lib="dom" />
 
-import {RenderInfo} from './render-lit-html.js';
-
 /**
  * @license
  * Copyright (c) 2019 The Polymer Project Authors. All rights reserved.
@@ -22,22 +20,27 @@ export type Constructor<T> = {new (): T};
  * An object that renders elements of a certain type.
  */
 export interface ElementRenderer {
+  element: HTMLElement;
+
+  tagName: string;
+
   /**
    * Render a single element's ShadowRoot contents.
    *
-   * @param e The element instance to render
-   * @param childRenderer A `ChildRenderer` that can be used to render children
-   *     into slots.
    */
-  renderElement(
-    e: HTMLElement,
-    renderInfo: RenderInfo
-  ): IterableIterator<string>;
+  renderElement(): IterableIterator<string>;
 
   /**
-   * Render the pre-scoped styles for an element definition.
-   *
-   * @param c The element _class_ to render styles for.
+   * Handles setting a property.
+   * @param name Name of the property
+   * @param value Value of the property
    */
-  renderStyles(c: HTMLElement): Iterator<string>;
+  setProperty(name: string, value: unknown): void;
+
+  /**
+   * Handles setting an attribute on an element.
+   * @param name Name of the attribute
+   * @param value Value of the attribute
+   */
+  setAttribute(name: string, value: string | null): void;
 }

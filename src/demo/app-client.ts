@@ -16,7 +16,7 @@ LitElement.hydrate = hydrate;
 // at `node_modules/lit-html` and
 // `node_modules/lit-element/node_modules/lit-html`. This should be addressed
 // by fixing the dev server, but setting it here works around this problem.
-LitElement.render = render;
+(LitElement as any).render = render;
 
 console.log('Page hydrating with same data as rendered with SSR.');
 // The hydrate() function is run with the same data as used in the server
