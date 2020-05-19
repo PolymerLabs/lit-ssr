@@ -18,9 +18,7 @@ import {TemplateResult, nothing, noChange} from 'lit-html';
 import {
   marker,
   markerRegex,
-  TemplatePart,
   boundAttributeSuffix,
-  AttributeTemplatePart,
   lastAttributeNameRegex,
 } from 'lit-html/lib/template.js';
 
@@ -54,39 +52,60 @@ declare module 'parse5' {
 const templateCache = new Map<
   TemplateStringsArray,
   {
-    html: string;
-    ast: DefaultTreeDocumentFragment;
-    parts: TemplatePart[];
     ops: Array<Op>;
   }
 >();
 
+/**
+ * Operation to output static text
+ */
 type TextOp = {
   type: 'text';
   value: string;
 };
 
+/**
+ * Operation to output dynamic text from the associated template result value
+ */
 type NodePartOp = {
   type: 'node-part';
+  index: number;
   useCustomElementInstance?: boolean;
 };
 
+/**
+ * Operation to output an attribute with bindings. Includes all bindings for an
+ * attribute, like an attribute template part or AttributeComitter.
+ */
 type AttributePartOp = {
   type: 'attribute-part';
+  index: number;
+  name: string;
+  strings: Array<string>;
   tagName: string;
   useCustomElementInstance?: boolean;
 };
 
+/**
+ * Operator to create a custom element instance.
+ */
 type CustomElementOpenOp = {
   type: 'custom-element-open';
   tagName: string;
   ctor: any;
 };
 
+/**
+ * Operation to render a custom element, usually its shadow root.
+ */
 type CustomElementRenderOp = {
   type: 'custom-element-render';
 };
 
+/**
+ * Operation to close a custom element so that its no longer available for
+ * bindings.
+ */
 type CustomElementClosedOp = {
   type: 'custom-element-close';
 };
@@ -109,7 +128,7 @@ const getTemplate = (result: TemplateResult) => {
     sourceCodeLocationInfo: true,
   }) as DefaultTreeDocumentFragment;
 
-  const parts: Array<TemplatePart> = [];
+  // const parts: Array<TemplatePart> = [];
 
   const ops: Array<Op> = [];
 
@@ -171,20 +190,16 @@ const getTemplate = (result: TemplateResult) => {
   // Depth-first node index. Initialized to -1 so that the first child node is
   // index 0, to match client-side lit-html.
   let nodeIndex = -1;
-  // const openElementStack: Array<{node: DefaultTreeElement, customElement?: string}> = [];
 
   traverse(ast, {
     pre(node, parent) {
       if (isCommentNode(node)) {
         if (node.data === marker) {
-          parts.push({
-            type: 'node',
-            index: nodeIndex,
-          });
           flushTo(node.sourceCodeLocation!.startOffset);
           skipTo(node.sourceCodeLocation!.endOffset);
           ops.push({
             type: 'node-part',
+            index: nodeIndex,
             useCustomElementInstance:
               parent && isElement(parent) && parent.isDefinedCustomElement,
           });
@@ -236,15 +251,12 @@ const getTemplate = (result: TemplateResult) => {
               ];
               const attrNameStartOffset = attrSourceLocation.startOffset;
               const attrEndOffset = attrSourceLocation.endOffset;
-              parts.push({
-                type: 'attribute',
-                index: nodeIndex,
-                name,
-                strings,
-              });
               flushTo(attrNameStartOffset);
               ops.push({
                 type: 'attribute-part',
+                index: nodeIndex,
+                name,
+                strings,
                 tagName,
                 useCustomElementInstance: ctor !== undefined,
               });
@@ -278,7 +290,7 @@ const getTemplate = (result: TemplateResult) => {
     },
   });
   flushTo();
-  const t = {html, ast, parts, ops};
+  const t = {ops};
   templateCache.set(result.strings, t);
   return t;
 };
@@ -369,16 +381,10 @@ export function* renderTemplateResult(
   // elements. For each we will record the offset of the node, and output the
   // previous span of HTML.
 
-  const {ops, parts: templateParts} = getTemplate(result);
+  const {ops} = getTemplate(result);
 
   /* The next value in result.values to render */
   let partIndex = 0;
-
-  /* 
-    The the template part index, which is different from the part index as
-    multiple-binding attribute expressions are combined into one template part.
-   */
-  let templatePartIndex = -1;
 
   for (const op of ops) {
     switch (op.type) {
@@ -387,19 +393,14 @@ export function* renderTemplateResult(
         break;
       case 'node-part': {
         const value = result.values[partIndex++];
-        templatePartIndex++;
         yield* renderValue(value, renderInfo);
         break;
       }
       case 'attribute-part': {
-        templatePartIndex++;
-        const templatePart = templateParts[
-          templatePartIndex
-        ] as AttributeTemplatePart;
         const stringForPart = result.strings[partIndex];
         const name = lastAttributeNameRegex.exec(stringForPart)![2];
-        const statics = templatePart.strings;
-        let attributeName = templatePart.name;
+        const statics = op.strings;
+        let attributeName = op.name;
         const prefix = attributeName[0];
         if (prefix === '.') {
           const propertyName = name.substring(1);
@@ -438,8 +439,6 @@ export function* renderTemplateResult(
             result,
             partIndex
           )}"`;
-          // attr.value has the raw attribute value, which may contain multiple
-          // bindings. Replace the markers with their resolved values.
           yield attributeString;
         }
         partIndex += statics.length - 1;
