@@ -145,7 +145,7 @@ const getTemplate = (result: TemplateResult) => {
     const previousLastOffset = lastOffset;
     lastOffset = offset;
     const value = html.substring(previousLastOffset, offset);
-    const op = ops[ops.length - 1];
+    const op = getLast(ops);
     if (op !== undefined && op.type === 'text') {
       op.value += value;
     } else {
@@ -157,7 +157,7 @@ const getTemplate = (result: TemplateResult) => {
   };
 
   const flush = (value: string) => {
-    const op = ops[ops.length - 1];
+    const op = getLast(ops);
     if (op !== undefined && op.type === 'text') {
       op.value += value;
     } else {
@@ -330,10 +330,7 @@ export function* renderValue(
     } else if (isRenderLightDirective(value)) {
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
-      const instance =
-        renderInfo.customElementInstanceStack[
-          renderInfo.customElementInstanceStack.length - 1
-        ];
+      const instance = getLast(renderInfo.customElementInstanceStack);
       // TODO, move out of here into something LitElement specific
       if (instance !== undefined) {
         const templateResult = (instance as any).renderLight();
@@ -408,10 +405,7 @@ export function* renderTemplateResult(
           const propertyName = name.substring(1);
           const value = result.values[partIndex];
           if (op.useCustomElementInstance) {
-            const instance =
-              renderInfo.customElementInstanceStack[
-                renderInfo.customElementInstanceStack.length - 1
-              ];
+            const instance = getLast(renderInfo.customElementInstanceStack);
             if (instance !== undefined) {
               (instance as any)[propertyName] = value;
             }
@@ -457,8 +451,6 @@ export function* renderTemplateResult(
         let instance: HTMLElement | undefined = undefined;
         try {
           instance = new ctor();
-          // const renderer = new LitElementRenderer();
-          // yield* renderer.renderElement(instance as LitElement, renderInfo);
         } catch (e) {
           console.error('Exception in custom element constructor', e);
         }
@@ -466,10 +458,7 @@ export function* renderTemplateResult(
         break;
       }
       case 'custom-element-render': {
-        const instance =
-          renderInfo.customElementInstanceStack[
-            renderInfo.customElementInstanceStack.length - 1
-          ];
+        const instance = getLast(renderInfo.customElementInstanceStack);
         if (instance !== undefined) {
           const renderer = new LitElementRenderer();
           yield* renderer.renderElement(instance as LitElement, renderInfo);
@@ -508,3 +497,5 @@ const getAttrValue = (
   }
   return s;
 };
+
+const getLast = <T>(a: Array<T>) => a[a.length - 1];
