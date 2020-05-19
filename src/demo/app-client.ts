@@ -32,7 +32,7 @@ window.setTimeout(() => {
   // The first call to render() can use new data, and will only update the DOM
   // where this data differs from that passed to hydrate().
   render(
-    template({name: 'Hydration', message: 'We have now been hydrated and updated with new data.', items: ['hy', 'dra', 'ted'], prop: 'prop-updated', attr: 'attr-updated'}),
+    template({name: 'Hydration', message: 'We have now been hydrated and updated with new data.', items: ['hy', 'dra', 'ted'], prop: 'prop-updated', attr: 'attr-updated', hasUpdated: true}),
     window.document.body
   );
-}, 500);
+}, 0);

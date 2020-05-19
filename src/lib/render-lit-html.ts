@@ -270,9 +270,10 @@ export function* renderTemplateResult(
           // Instantiate the element and stream its render() result
           try {
             instance = new ctor();
-            renderInfo.instances[
-              renderInfo.instances.length - 1
-            ].instance = instance;
+            (instance as any).tagName = node.tagName;
+            // renderInfo.instances[
+            //   renderInfo.instances.length - 1
+            // ].instance = instance;
           } catch (e) {
             console.error('Exception in custom element constructor', e);
           }

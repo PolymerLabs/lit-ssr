@@ -39,5 +39,5 @@ export interface ElementRenderer {
    *
    * @param c The element _class_ to render styles for.
    */
-  renderStyles(c: Constructor<HTMLElement>): Iterator<string>;
+  renderStyles(c: HTMLElement): Iterator<string>;
 }

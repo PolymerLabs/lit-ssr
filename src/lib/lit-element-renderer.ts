@@ -15,7 +15,7 @@
 import {ElementRenderer} from './element-renderer.js';
 import {LitElement, TemplateResult, CSSResult} from 'lit-element';
 import {render, RenderInfo} from './render-lit-html.js';
-import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
+//import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 
 export type Constructor<T> = {new (): T};
 
@@ -31,23 +31,31 @@ export class LitElementRenderer implements ElementRenderer {
       render(): TemplateResult;
     }).render();
     yield '<template shadowroot="open">';
+    yield* this.renderStyles(instance);
     yield* render(renderResult);
     yield '</template>';
   }
 
   *renderStyles(
-    _elementClass: Constructor<HTMLElement>
-  ): Iterator<string> {
-    const scopedStyles = [];
-    for (const [tagName, definition] of (customElements as any).__definitions) {
-      const styles = [(definition.ctor as any).styles].flat(Infinity);
-      for (const style of styles) {
-        if (style instanceof CSSResult) {
-          const scoped = StyleTransformer.css(style.cssText, tagName);
-          scopedStyles.push(scoped);
+    instance: LitElement
+  ): IterableIterator<string> {
+    const ctor = customElements.get(instance.tagName);
+    const styles = [(ctor as any).styles].flat(Infinity);
+    let hasCssResult = false;
+    for (const style of styles) {
+      if (style instanceof CSSResult) {
+        if (!hasCssResult) {
+          hasCssResult = true;
+          yield '<style>';
         }
+        // TODO(sorvell): support ShadyCSS transformed styles. These should
+        // be written once.
+        //const scoped = StyleTransformer.css(style.cssText, tagName);
+        yield style.cssText;
       }
     }
-    return scopedStyles;
+    if (hasCssResult) {
+      yield '</style>';
+    }
   }
 }
