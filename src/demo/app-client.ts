@@ -10,7 +10,7 @@ import {template, initialData} from './module.js';
 declare var window: any;
 
 // Note, give LitElement a hydrate function.
-LitElement.hydrate = hydrate;
+(LitElement as any).hydrate = hydrate;
 // TODO(sorvell): Give LitElement a render function to avoid a version
 // conflict that results from the dev server config. Here lit-html is loaded
 // at `node_modules/lit-html` and
