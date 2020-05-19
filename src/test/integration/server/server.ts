@@ -18,7 +18,7 @@ import Router from '@koa/router';
 
 import {importModule} from '../../../lib/import-module.js';
 import {window} from '../../../lib/dom-shim.js';
-import {AsyncIterableReader} from '../../../lib/util/async-iterator-readable.js';
+import {IterableReader} from '../../../lib/util/iterator-readable.js';
 
 import * as testModule from '../tests/basic-ssr.js';
 import { SSRTest } from "../tests/ssr-test";
@@ -42,16 +42,16 @@ export const startServer = async (port = 9090) => {
     const {render} = module;
     // For debugging:
     if (false) {
-      const result = render(test.render(...test.expectations[0].args), undefined);
+      const result = render(test.render(...test.expectations[0].args));
       let s = '';
       for await (const chunk of result) {
         s += chunk;
       }
       console.log('result', s);
     }
-    const result = render(test.render(...test.expectations[0].args), undefined);
+    const result = render(test.render(...test.expectations[0].args));
     context.type = 'text/html';
-    context.body = new AsyncIterableReader(result);
+    context.body = new IterableReader(result);
   });
 
   app.use(router.routes());
