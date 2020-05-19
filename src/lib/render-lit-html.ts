@@ -112,12 +112,15 @@ declare global {
   }
 }
 
-const setAttributeToElement = (element: LitElement, name: string,
-    value: unknown) => {
+const setAttributeToElement = (
+  element: LitElement,
+  name: string,
+  value: unknown
+) => {
   if (element.attributeChangedCallback) {
     element.attributeChangedCallback(name, null, value as string);
   }
-}
+};
 
 /**
  * Returns the scoped style sheets required by all elements currently defined.
@@ -348,7 +351,7 @@ export function* renderTemplateResult(
             let attributeString = `${attributeName}="`;
             // attr.value has the raw attribute value, which may contain multiple
             // bindings. Replace the markers with their resolved values.
-            const value = getAttrValue(attr, result, partIndex)
+            const value = getAttrValue(attr, result, partIndex);
             // Set attribute into element instance
             if (instance !== undefined) {
               setAttributeToElement(instance, attributeName, value);

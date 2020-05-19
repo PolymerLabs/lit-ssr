@@ -36,9 +36,7 @@ export class LitElementRenderer implements ElementRenderer {
     yield '</template>';
   }
 
-  *renderStyles(
-    instance: LitElement
-  ): IterableIterator<string> {
+  *renderStyles(instance: LitElement): IterableIterator<string> {
     const ctor = customElements.get(instance.tagName);
     const styles = [(ctor as any).styles].flat(Infinity);
     let hasCssResult = false;

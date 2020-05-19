@@ -12,11 +12,10 @@ export const initialData = {
   items: ['foo', 'bar', 'qux'],
   prop: 'prop-value',
   attr: 'attr-value',
-  wasUpdated: false
+  wasUpdated: false,
 };
 
 export class MyElement extends LitElement {
-
   static styles = css`
     :host {
       display: inline-block;
@@ -60,7 +59,14 @@ export const header = (name: string) =>
     <h1>Hello ${name}!</h1>
   `;
 
-export const template = (data: {name: string, message: string, items: Array<string>, prop: string, attr: string, wasUpdated: boolean}) =>
+export const template = (data: {
+  name: string;
+  message: string;
+  items: Array<string>;
+  prop: string;
+  attr: string;
+  wasUpdated: boolean;
+}) =>
   html`
     ${header(data.name)}
     <p>${data.message}</p>
@@ -73,7 +79,15 @@ export const template = (data: {name: string, message: string, items: Array<stri
           `
       )}
     </div>
-    ${Array(3).fill(1).map((_item, i) => html`
-      <my-element ?wasUpdated=${data.wasUpdated} .prop=${`${data.prop}: ${i}`} attr=${`${data.attr}: ${i}`}></my-element>
-    `)}
+    ${Array(3)
+      .fill(1)
+      .map(
+        (_item, i) => html`
+          <my-element
+            ?wasUpdated=${data.wasUpdated}
+            .prop=${`${data.prop}: ${i}`}
+            attr=${`${data.attr}: ${i}`}
+          ></my-element>
+        `
+      )}
   `;
