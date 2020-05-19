@@ -14,7 +14,7 @@ export function renderAppWithInitialData() {
 // shell in unbalanced fragments. By yielding the HTML pramable immediately
 // with no lit-html template preparation or rendering needed, we minimize TTFB,
 // And can get the browser to start prefetch as soon as possible.
-export async function* renderApp(data: any) {
+export function* renderApp(data: any) {
   yield `
     <!doctype html>
     <html>
@@ -39,11 +39,7 @@ export async function* renderApp(data: any) {
         <div>`;
 
   // Call the SSR render() function to render a client/server shared template.
-  yield* render(
-    template(data),
-    undefined,
-    false
-  );
+  yield* render(template(data));
 
   yield `
         </div>

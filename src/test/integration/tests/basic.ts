@@ -1180,4 +1180,59 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  /******************************************************
+   * Mixed part tests
+   ******************************************************/
+
+  'NodeParts & AttributeParts on adjacent nodes': {
+    render(x, y) {
+      return html`<div attr="${x}">${x}</div><div attr="${y}">${y}</div>`;
+    },
+    expectations: [
+      {
+        args: ['x', 'y'],
+        html: '<div attr="x">x</div><div attr="y">y</div>',
+      },
+      {
+        args: ['a', 'b'],
+        html: '<div attr="a">a</div><div attr="b">b</div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodeParts & AttributeParts on nested nodes': {
+    render(x, y) {
+      return html`<div attr="${x}">${x}<div attr="${y}">${y}</div></div>`;
+    },
+    expectations: [
+      {
+        args: ['x', 'y'],
+        html: '<div attr="x">x<div attr="y">y</div></div>',
+      },
+      {
+        args: ['a', 'b'],
+        html: '<div attr="a">a<div attr="b">b</div></div>',
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodeParts & AttributeParts soup': {
+    render(x, y, z) {
+      return html`text:${x}<div>${x}</div><span a1="${y}" a2="${y}">${x}<p a="${y}">${y}</p>${z}</span>`;
+    },
+    expectations: [
+      {
+        args: [html`<a></a>`, 'b', 'c'],
+        html: 'text:<a></a><div><a></a></div><span a1="b" a2="b"><a></a><p a="b">b</p>c</span>',
+      },
+      {
+        args: ['x', 'y', html`<i></i>`],
+        html: 'text:\nx<div>x</div><span a1="y" a2="y">x<p a="y">y</p><i></i></span>',
+      }
+    ],
+    stableSelectors: ['div', 'span', 'p'],
+  },
+
 };

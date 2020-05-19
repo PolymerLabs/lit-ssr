@@ -24,28 +24,17 @@ import {
 } from 'lit-html/lib/template.js';
 
 // types only
-import {
-  Node,
-  DefaultTreeDocumentFragment,
-  DefaultTreeNode,
-  Attribute,
-} from 'parse5';
+import {DefaultTreeDocumentFragment, DefaultTreeNode, Attribute} from 'parse5';
 
 import {
   depthFirst,
   parseFragment,
   isCommentNode,
   isElement,
-  getAttr,
-  isTextNode,
 } from './util/parse5-utils.js';
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import {
-  LitHtmlChildRenderer,
-  LitElementRenderer,
-} from './lit-element-renderer.js';
-import {ChildRenderer} from './element-renderer.js';
+import {LitElementRenderer} from './lit-element-renderer.js';
 import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
 import {
   isClassMapDirective,
@@ -53,8 +42,6 @@ import {
 } from './directives/class-map.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
-
-const traverse = require('parse5-traverse');
 
 const templateCache = new Map<
   TemplateStringsArray,
@@ -83,9 +70,15 @@ const getTemplate = (result: TemplateResult) => {
           index: nodeIndex,
         });
       }
+      // There will be two comments per part (open+close) in the rendered
+      // output and on the client, so increment again for that
+      nodeIndex++;
     } else if (isElement(node) && node.attrs.length > 0) {
       for (const attr of node.attrs) {
         if (attr.name.endsWith(boundAttributeSuffix)) {
+          // Note that although we emit a lit-bindings comment marker for any
+          // nodes with bindings, we don't account for it in the nodeIndex because
+          // that will not be injected into the client template
           const name = attr.name.substring(
             0,
             attr.name.length - boundAttributeSuffix.length
@@ -109,13 +102,7 @@ const getTemplate = (result: TemplateResult) => {
 
 const globalMarkerRegex = new RegExp(markerRegex, `${markerRegex.flags}g`);
 
-type SlotInfo = {
-  slotName: string | undefined;
-};
-
 export type RenderInfo = {
-  slot?: SlotInfo;
-  flattened: boolean;
   instances: Array<{tagName: string; instance?: LitElement}>;
 };
 
@@ -148,38 +135,23 @@ export const getScopedStyles = () => {
   }
   return scopedStyles;
 };
-export async function* render(
-  value: unknown,
-  childRenderer: ChildRenderer | undefined,
-  flattened: boolean = false
-): AsyncIterableIterator<string> {
-  yield* renderValue(value, childRenderer, {flattened, instances: []});
+export function* render(value: unknown): IterableIterator<string> {
+  yield* renderValue(value, {instances: []});
 }
 
-export async function* renderValue(
+export function* renderValue(
   value: unknown,
-  childRenderer: ChildRenderer | undefined,
   renderInfo: RenderInfo
-): AsyncIterableIterator<string> {
-  // flattened = flattened ?? true;
-
-  // console.log('render', {
-  //   isTemplateResult: value instanceof TemplateResult,
-  //   isRepeat: isRepeatDirective(value),
-  //   isDirective: isDirective(value),
-  // });
-  // if (isDirective(value)) {
-  //   console.log('directive', value, isRenderLightDirective(value));
-  // }
+): IterableIterator<string> {
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
-    yield* renderTemplateResult(value, childRenderer, new Set(), renderInfo);
+    yield* renderTemplateResult(value, renderInfo);
   } else {
     yield `<!--lit-part-->`;
     if (value === undefined || value === null) {
       // do nothing
     } else if (isRepeatDirective(value)) {
-      yield* (value as RepeatPreRenderer)(childRenderer, renderInfo);
+      yield* (value as RepeatPreRenderer)(renderInfo);
     } else if (isRenderLightDirective(value)) {
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
@@ -187,13 +159,13 @@ export async function* renderValue(
       // TODO, move out of here into something LitElement specific
       if (instance.instance !== undefined) {
         const templateResult = (instance.instance as any).renderLight();
-        yield* renderValue(templateResult, childRenderer, renderInfo);
+        yield* renderValue(templateResult, renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {
-        yield* renderValue(item, childRenderer, renderInfo);
+        yield* renderValue(item, renderInfo);
       }
     } else {
       // TODO: convert value to string, handle arrays, directives, etc.
@@ -203,14 +175,10 @@ export async function* renderValue(
   yield `<!--/lit-part-->`;
 }
 
-export async function* renderTemplateResult(
+export function* renderTemplateResult(
   result: TemplateResult,
-  childRenderer: ChildRenderer | undefined,
-  claimedNodes: Set<Node> = new Set(),
-  renderInfo: RenderInfo /* = {flattened: true} */
-): AsyncIterableIterator<string> {
-  const {slot} = renderInfo;
-
+  renderInfo: RenderInfo
+): IterableIterator<string> {
   // In order to render a TemplateResult we have to handle and stream out
   // different parts of the result separately:
   //   - Literal sections of the template
@@ -236,9 +204,6 @@ export async function* renderTemplateResult(
     multiple-binding attribute expressions are combined into one template part.
    */
   let templatePartIndex = -1;
-
-  /* The index of the last distributed value to be rendered to a slot */
-  let distributedIndex = -1;
 
   /* The last offset of html written to the stream */
   let lastOffset: number | undefined = 0;
@@ -274,28 +239,14 @@ export async function* renderTemplateResult(
     lastOffset = offset;
   };
 
-  async function* handleNode(node: DefaultTreeNode) {
+  function* handleNode(node: DefaultTreeNode) {
     if (isCommentNode(node)) {
       if (node.data === marker) {
         yield flushTo(node.sourceCodeLocation!.startOffset);
         skipTo(node.sourceCodeLocation!.endOffset);
         const value = result.values[partIndex++];
         templatePartIndex++;
-
-        if (partIndex <= distributedIndex) {
-          // This means we've already consumed this part during distribution
-          // into a slot, so we don't want to render the value, but we do want
-          // to render the part markers for subsequent hydration.
-          // TODO: we also want to render placeholder comments for the
-          // distributed nodes
-          if (value instanceof TemplateResult) {
-            yield `<!--lit-part ${value.digest}--><!--/lit-part-->`;
-          } else {
-            yield `<!--lit-part--><!--/lit-part-->`;
-          }
-        } else {
-          yield* renderValue(value, childRenderer, renderInfo);
-        }
+        yield* renderValue(value, renderInfo);
       }
     } else if (isElement(node)) {
       // If the element is custom, this will be the instantiated class
@@ -306,210 +257,138 @@ export async function* renderTemplateResult(
       // which might reflect their own state, or any element with a binding.
       let writeTag = false;
 
-      if (claimedNodes.has(node)) {
-        // Skip the already distributed node
-        yield flushTo(node.sourceCodeLocation!.startOffset);
-        skipTo(node.sourceCodeLocation!.endOffset);
-        // [1] TODO: write the distributed node placeholder comment
-      } else {
-        // renderInfo.instances.push({tagName: node.tagName});
-        // console.log('start element', renderInfo.instances);
-        const tagName = node.tagName;
+      // console.log('start element', renderInfo.instances);
+      const tagName = node.tagName;
 
-        if (tagName === 'slot' && renderInfo.flattened) {
-          yield flushTo(node.sourceCodeLocation!.startTag.startOffset);
-          const slotName = getAttr(node, 'name');
+      if (tagName.indexOf('-') !== -1) {
+        const ctor = customElements.get(tagName);
+        // console.log('potentially custom element', tagName, ctor !== undefined);
+        if (ctor !== undefined) {
+          // Write the start tag
+          writeTag = true;
 
-          if (childRenderer !== undefined) {
-            yield* childRenderer.renderChildren(slotName);
-          }
-
-          skipTo(node.sourceCodeLocation!.endOffset);
-        } else if (tagName.indexOf('-') !== -1) {
-          const ctor = customElements.get(tagName);
-          // console.log('potentially custom element', tagName, ctor !== undefined);
-          if (ctor !== undefined) {
-            // Write the start tag
-            // yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
-            writeTag = true;
-
-            // Instantiate the element and stream its render() result
-            try {
-              instance = new ctor();
-              renderInfo.instances[
-                renderInfo.instances.length - 1
-              ].instance = instance;
-            } catch (e) {
-              console.error('Exception in custom element constructor', e);
-            }
+          // Instantiate the element and stream its render() result
+          try {
+            instance = new ctor();
+            renderInfo.instances[
+              renderInfo.instances.length - 1
+            ].instance = instance;
+          } catch (e) {
+            console.error('Exception in custom element constructor', e);
           }
         }
+      }
 
-        // Handle attributes
+      // Handle attributes
 
-        let boundAttrsCount = 0;
-        for (const attr of node.attrs) {
-          if (attr.name.endsWith('$lit$')) {
-            const attrSourceLocation = node.sourceCodeLocation!.attrs[
-              attr.name
-            ];
-            const stringForPart = result.strings[partIndex];
-            const name = lastAttributeNameRegex.exec(stringForPart)![2];
-            const attrNameStartOffset = attrSourceLocation.startOffset;
-            const attrEndOffset = attrSourceLocation.endOffset;
-            const statics = attr.value.split(markerRegex);
-            let attributeName = attr.name.substring(
-              0,
-              attr.name.length - boundAttributeSuffix.length
-            );
-            yield html.substring(lastOffset!, attrNameStartOffset);
+      let boundAttrsCount = 0;
+      for (const attr of node.attrs) {
+        if (attr.name.endsWith('$lit$')) {
+          const attrSourceLocation = node.sourceCodeLocation!.attrs[attr.name];
+          const stringForPart = result.strings[partIndex];
+          const name = lastAttributeNameRegex.exec(stringForPart)![2];
+          const attrNameStartOffset = attrSourceLocation.startOffset;
+          const attrEndOffset = attrSourceLocation.endOffset;
+          const statics = attr.value.split(markerRegex);
+          let attributeName = attr.name.substring(
+            0,
+            attr.name.length - boundAttributeSuffix.length
+          );
+          yield html.substring(lastOffset!, attrNameStartOffset);
 
-            if (name.startsWith('.')) {
-              // Property binding
-              const propertyName = name.substring(1);
+          if (name.startsWith('.')) {
+            // Property binding
+            const propertyName = name.substring(1);
 
-              let value: unknown;
-              if (statics.length === 2) {
-                // Single-expression property binding
-                value = result.values[partIndex++];
-              } else {
-                // Multi-expression property binding
-                value = getAttrValue(attr, result, partIndex);
-                partIndex += statics.length - 1;
-              }
-              if (instance !== undefined) {
-                (instance as any)[propertyName] = value;
-              }
-              // Property should be reflected to attribute
-              const reflectedName = reflectedAttributeName(tagName, propertyName);
-
-              if (reflectedName !== undefined) {
-                yield `${reflectedName}="${value}"`;
-              }
-            } else if (name.startsWith('@')) {
-              // Event binding
-              // do nothing with values
-              partIndex += statics.length - 1;
-            } else if (name.startsWith('?')) {
-              // Boolean attribute binding
-              attributeName = attributeName.substring(1);
-              if (
-                statics.length !== 2 ||
-                statics[0] !== '' ||
-                statics[1] !== ''
-              ) {
-                throw new Error(
-                  'Boolean attributes can only contain a single expression'
-                );
-              }
-              const value = result.values[partIndex++];
-              if (value) {
-                if (instance !== undefined) {
-                  setAttributeToElement(instance, attributeName, value);
-                }
-                yield attributeName;
-              }
+            let value: unknown;
+            if (statics.length === 2) {
+              // Single-expression property binding
+              value = result.values[partIndex++];
             } else {
-              let attributeString = `${attributeName}="`;
-              // attr.value has the raw attribute value, which may contain multiple
-              // bindings. Replace the markers with their resolved values.
-              const value = getAttrValue(attr, result, partIndex);
-              attributeString += value;
+              // Multi-expression property binding
+              value = getAttrValue(attr, result, partIndex);
               partIndex += statics.length - 1;
+            }
+            // Set property into element instance
+            if (instance !== undefined) {
+              (instance as any)[propertyName] = value;
+            }
+            // Property should be reflected to attribute
+            const reflectedName = reflectedAttributeName(tagName, propertyName);
+
+            if (reflectedName !== undefined) {
+              yield `${reflectedName}="${value}"`;
+            }
+          } else if (name.startsWith('@')) {
+            // Event binding
+            // do nothing with values
+            partIndex += statics.length - 1;
+          } else if (name.startsWith('?')) {
+            // Boolean attribute binding
+            attributeName = attributeName.substring(1);
+            if (
+              statics.length !== 2 ||
+              statics[0] !== '' ||
+              statics[1] !== ''
+            ) {
+              throw new Error(
+                'Boolean attributes can only contain a single expression'
+              );
+            }
+            const value = result.values[partIndex++];
+            if (value) {
+              // Set attribute into element instance
               if (instance !== undefined) {
                 setAttributeToElement(instance, attributeName, value);
               }
-              yield attributeString + '"';
+              yield attributeName;
             }
-            skipTo(attrEndOffset);
-            boundAttrsCount += 1;
-            templatePartIndex++;
+          } else {
+            let attributeString = `${attributeName}="`;
+            // attr.value has the raw attribute value, which may contain multiple
+            // bindings. Replace the markers with their resolved values.
+            const value = getAttrValue(attr, result, partIndex)
+            // Set attribute into element instance
+            if (instance !== undefined) {
+              setAttributeToElement(instance, attributeName, value);
+            }
+            attributeString += value;
+            partIndex += statics.length - 1;
+            yield attributeString + '"';
           }
+          skipTo(attrEndOffset);
+          boundAttrsCount += 1;
+          templatePartIndex++;
         }
-
-        if (writeTag || boundAttrsCount > 0) {
-          yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
-        }
-
-        if (boundAttrsCount > 0) {
-          const templatePart = templateParts[templatePartIndex];
-          // templatePart.index is the depth-first node index of the parent node
-          // of this comment.
-          yield `<!--lit-bindings ${templatePart.index}-->`;
-        }
-
-        if (instance !== undefined) {
-          const childRenderer = new LitHtmlChildRenderer(
-            node.childNodes,
-            html,
-            result,
-            partIndex,
-            claimedNodes
-          );
-          // TODO: look up a renderer instead of creating one
-          const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(
-            instance as LitElement,
-            childRenderer,
-            renderInfo
-          );
-          distributedIndex = childRenderer.renderedPartIndex;
-        }
-        // console.log('end element', node.tagName, renderInfo.instances);
-        // renderInfo.instances.pop();
       }
+
+      if (writeTag || boundAttrsCount > 0) {
+        yield flushTo(node.sourceCodeLocation!.startTag.endOffset);
+      }
+
+      if (boundAttrsCount > 0) {
+        const templatePart = templateParts[templatePartIndex];
+        // templatePart.index is the depth-first node index of the parent node
+        // of this comment.
+        yield `<!--lit-bindings ${templatePart.index}-->`;
+      }
+
+      if (instance !== undefined) {
+        // TODO: look up a renderer instead of creating one
+        const renderer = new LitElementRenderer();
+        yield* renderer.renderElement(instance as LitElement, renderInfo);
+      }
+      // console.log('end element', node.tagName, renderInfo.instances);
+      // renderInfo.instances.pop();
     }
   }
 
-  // At the top-level of a TemplateResult we may have nodes that are children of
-  // an element with slots, so we need to handle top-level nodes specially in an
-  // outer loop. From there we perform a depth-first traversal.
   if (ast.childNodes === undefined) {
     return;
   }
-  for (const node of ast.childNodes) {
-    if (isElement(node)) {
-      renderInfo.instances.push({tagName: node.tagName});
-    }
-    if (slot !== undefined) {
-      if (isElement(node)) {
-        const nodeSlotName = getAttr(node, 'slot');
-        if (nodeSlotName === slot.slotName) {
-          skipTo(node.sourceCodeLocation!.startOffset);
-          for (const child of depthFirst(node)) {
-            yield* handleNode(child);
-          }
-          yield flushTo(node.sourceCodeLocation!.endOffset);
-        } else {
-          skipTo(node.sourceCodeLocation!.endOffset);
-        }
-      } else if (slot.slotName === undefined && isTextNode(node)) {
-        for (const child of depthFirst(node)) {
-          yield* handleNode(child);
-        }
-      }
-    } else {
-      traverse(node, {
-        pre(node: DefaultTreeNode, _parent: DefaultTreeNode) {
-          if (isElement(node)) {
-            renderInfo.instances.push({tagName: node.tagName});
-          }
-        },
-        post(node: DefaultTreeNode, _parent: DefaultTreeNode) {
-          if (isElement(node)) {
-            renderInfo.instances.pop();
-          }
-        },
-      });
-      for (const child of depthFirst(node)) {
-        yield* handleNode(child);
-      }
-    }
-    if (isElement(node)) {
-      renderInfo.instances.pop();
-    }
+  for (const child of depthFirst(ast)) {
+    yield* handleNode(child);
   }
-
   yield flushTo();
   if (partIndex !== result.values.length) {
     throw new Error(

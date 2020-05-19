@@ -31,30 +31,13 @@ export interface ElementRenderer {
    */
   renderElement(
     e: HTMLElement,
-    childRenderer: ChildRenderer,
     renderInfo: RenderInfo
-  ): AsyncIterableIterator<string>;
+  ): IterableIterator<string>;
 
   /**
    * Render the pre-scoped styles for an element definition.
    *
    * @param c The element _class_ to render styles for.
    */
-  renderStyles(c: Constructor<HTMLElement>): AsyncIterator<string>;
-}
-
-/**
- * Renders child content from within a host element, associated with a
- * particular slot name.
- *
- * ChildRenderer's are expected to be stateful and created by a template-system
- * renderer library before calling into ElementRenderer.renderElement(). They
- * both render an element's children and inform the hosting template renderer
- * what parts of the template were consumed when rendering children.
- */
-export interface ChildRenderer {
-  /**
-   * Render the children that should be projected to the slot `slotName`.
-   */
-  renderChildren(slotName: string | undefined): AsyncIterableIterator<string>;
+  renderStyles(c: Constructor<HTMLElement>): Iterator<string>;
 }
