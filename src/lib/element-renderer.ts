@@ -22,8 +22,6 @@ export type Constructor<T> = {new (): T};
 export interface ElementRenderer {
   element: HTMLElement;
 
-  tagName: string;
-
   /**
    * Render a single element's ShadowRoot contents.
    *

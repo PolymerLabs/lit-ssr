@@ -53,7 +53,6 @@
     "lit-html": "Polymer/lit-html#hydration",
     "template-shadowroot": "webcomponents/template-shadowroot",
     "parse5": "^5.1.0",
-    "parse5-traverse": "^1.0.3",
     "resolve": "^1.10.1",
     "tape": "^4.11.0"
   },

@@ -22,7 +22,7 @@ export type Constructor<T> = {new (): T};
  * An object that renders elements of a certain type.
  */
 export class LitElementRenderer implements ElementRenderer {
-  constructor(public element: LitElement, public tagName: string) {}
+  constructor(public element: LitElement) {}
 
   *renderElement(): IterableIterator<string> {
     const renderResult = ((this.element as unknown) as {
@@ -30,7 +30,7 @@ export class LitElementRenderer implements ElementRenderer {
     }).render();
     yield '<template shadowroot="open">';
     // Render styles.
-    const ctor = customElements.get(this.tagName);
+    const ctor = customElements.get(this.element.tagName!);
     const styles = [(ctor as any).styles].flat(Infinity);
     let hasCssResult = false;
     for (const style of styles) {
