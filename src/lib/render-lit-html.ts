@@ -32,7 +32,7 @@ import {
   isElement,
 } from './util/parse5-utils.js';
 
-import {LitElement, CSSResult} from 'lit-element';
+import {CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
 import {
@@ -296,7 +296,7 @@ const getTemplate = (result: TemplateResult) => {
 };
 
 export type RenderInfo = {
-  customElementInstanceStack: Array<HTMLElement | undefined>;
+  customElementInstanceStack: Array<LitElementRenderer | undefined>;
 };
 
 declare global {
@@ -343,10 +343,8 @@ export function* renderValue(
       // If a value was produced with renderLight(), we want to call and render
       // the renderLight() method.
       const instance = getLast(renderInfo.customElementInstanceStack);
-      // TODO, move out of here into something LitElement specific
       if (instance !== undefined) {
-        const templateResult = (instance as any).renderLight();
-        yield* renderValue(templateResult, renderInfo);
+        yield* instance.renderLight(renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
@@ -402,14 +400,14 @@ export function* renderTemplateResult(
         const statics = op.strings;
         let attributeName = op.name;
         const prefix = attributeName[0];
+        const instance = op.useCustomElementInstance
+          ? getLast(renderInfo.customElementInstanceStack)
+          : undefined;
         if (prefix === '.') {
           const propertyName = name.substring(1);
           const value = result.values[partIndex];
-          if (op.useCustomElementInstance) {
-            const instance = getLast(renderInfo.customElementInstanceStack);
-            if (instance !== undefined) {
-              (instance as any)[propertyName] = value;
-            }
+          if (instance !== undefined) {
+            instance.setProperty(propertyName, value);
           }
           // Property should be reflected to attribute
           const reflectedName = reflectedAttributeName(
@@ -431,6 +429,9 @@ export function* renderTemplateResult(
           }
           const value = result.values[partIndex];
           if (value) {
+            if (instance !== undefined) {
+              instance.setAttribute(attributeName, value as string);
+            }
             yield attributeName;
           }
         } else {
@@ -439,6 +440,9 @@ export function* renderTemplateResult(
             result,
             partIndex
           )}"`;
+          if (instance !== undefined) {
+            instance.setAttribute(attributeName, attributeString as string);
+          }
           yield attributeString;
         }
         partIndex += statics.length - 1;
@@ -447,9 +451,11 @@ export function* renderTemplateResult(
       case 'custom-element-open': {
         const ctor = op.ctor;
         // Instantiate the element and stream its render() result
-        let instance: HTMLElement | undefined = undefined;
+        let instance = undefined;
         try {
-          instance = new ctor();
+          const element = new ctor();
+          (element as any).tagName = op.tagName;
+          instance = new LitElementRenderer(element);
         } catch (e) {
           console.error('Exception in custom element constructor', e);
         }
@@ -459,8 +465,7 @@ export function* renderTemplateResult(
       case 'custom-element-render': {
         const instance = getLast(renderInfo.customElementInstanceStack);
         if (instance !== undefined) {
-          const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(instance as LitElement, renderInfo);
+          yield* instance.renderElement();
         }
         break;
       }

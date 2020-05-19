@@ -41,20 +41,14 @@ app.use(async (ctx: Koa.Context, next: Function) => {
   const ssrResult = await (renderModule(
     './app-server.js',
     import.meta.url,
-    'renderApp',
-    [
-      {
-        name: 'SSR',
-        message: 'This is a test.',
-        items: ['foo', 'bar', 'qux'],
-      },
-    ]
+    'renderAppWithInitialData',
+    []
   ) as Promise<Iterable<unknown>>);
 
   ctx.type = 'text/html';
   ctx.body = new IterableReader(ssrResult);
 });
-app.use(nodeResolve());
+app.use(nodeResolve({}));
 app.use(staticFiles(packageRoot));
 app.listen(port, () => {
   console.log(`Server listening on port ${port}`);
