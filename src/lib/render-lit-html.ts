@@ -296,9 +296,7 @@ const getTemplate = (result: TemplateResult) => {
 };
 
 export type RenderInfo = {
-  customElementInstanceStack: Array<
-    {element: HTMLElement; renderer: LitElementRenderer} | undefined
-  >;
+  customElementInstanceStack: Array<LitElementRenderer | undefined>;
 };
 
 declare global {
@@ -346,7 +344,7 @@ export function* renderValue(
       // the renderLight() method.
       const instance = getLast(renderInfo.customElementInstanceStack);
       if (instance !== undefined) {
-        yield* instance.renderer.renderLight(renderInfo);
+        yield* instance.renderLight(renderInfo);
       }
     } else if (value === nothing || value === noChange) {
       // yield nothing
@@ -409,7 +407,7 @@ export function* renderTemplateResult(
           const propertyName = name.substring(1);
           const value = result.values[partIndex];
           if (instance !== undefined) {
-            instance.renderer.setProperty(propertyName, value);
+            instance.setProperty(propertyName, value);
           }
           // Property should be reflected to attribute
           const reflectedName = reflectedAttributeName(
@@ -432,7 +430,7 @@ export function* renderTemplateResult(
           const value = result.values[partIndex];
           if (value) {
             if (instance !== undefined) {
-              instance.renderer.setAttribute(attributeName, value as string);
+              instance.setAttribute(attributeName, value as string);
             }
             yield attributeName;
           }
@@ -443,10 +441,7 @@ export function* renderTemplateResult(
             partIndex
           )}"`;
           if (instance !== undefined) {
-            instance.renderer.setAttribute(
-              attributeName,
-              attributeString as string
-            );
+            instance.setAttribute(attributeName, attributeString as string);
           }
           yield attributeString;
         }
@@ -460,8 +455,7 @@ export function* renderTemplateResult(
         try {
           const element = new ctor();
           (element as any).tagName = op.tagName;
-          const renderer = new LitElementRenderer(element);
-          instance = {element, renderer};
+          instance = new LitElementRenderer(element);
         } catch (e) {
           console.error('Exception in custom element constructor', e);
         }
@@ -471,7 +465,7 @@ export function* renderTemplateResult(
       case 'custom-element-render': {
         const instance = getLast(renderInfo.customElementInstanceStack);
         if (instance !== undefined) {
-          yield* instance.renderer.renderElement();
+          yield* instance.renderElement();
         }
         break;
       }
