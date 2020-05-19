@@ -1202,6 +1202,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'NodeParts & AttributeParts on nested nodes': {
+    skip: true,
     render(x, y) {
       return html`<div attr="${x}">${x}<div attr="${y}">${y}</div></div>`;
     },
@@ -1219,6 +1220,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'NodeParts & AttributeParts soup': {
+    skip: true,
     render(x, y, z) {
       return html`text:${x}<div>${x}</div><span a1="${y}" a2="${y}">${x}<p a="${y}">${y}</p>${z}</span>`;
     },

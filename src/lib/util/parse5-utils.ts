@@ -13,11 +13,11 @@ import {
   Node,
   DefaultTreeCommentNode,
   DefaultTreeDocumentFragment,
+  DefaultTreeParentNode,
 } from 'parse5';
 import * as parse5lib from 'parse5';
 
 const parse5 = require('parse5') as typeof parse5lib;
-const traverse = require('parse5-traverse');
 
 export const parseFragment = parse5.parseFragment;
 
@@ -128,14 +128,15 @@ export function isTextNode(
   return node.nodeName === '#text';
 }
 
-export const defaultChildNodes = (node: DefaultTreeElement) => node.childNodes;
+export type GetChildNodes = (node: DefaultTreeParentNode) => Array<DefaultTreeNode>|undefined;
+export const defaultChildNodes: GetChildNodes = (node: DefaultTreeParentNode) => node.childNodes;
 
 export function* depthFirst(
   node: DefaultTreeNode | DefaultTreeDocumentFragment,
-  getChildNodes: any = defaultChildNodes
+  getChildNodes: GetChildNodes = defaultChildNodes
 ): Iterable<DefaultTreeNode> {
   yield node;
-  const childNodes = getChildNodes(node);
+  const childNodes = getChildNodes(node as DefaultTreeParentNode);
   if (childNodes === undefined) {
     return;
   }
@@ -213,3 +214,31 @@ export function newTextNode(value: any) {
     __location: undefined,
   };
 }
+
+export interface Visitor {
+  pre?: (node: DefaultTreeNode, parent?: DefaultTreeParentNode) => boolean|void;
+  post?: (node: DefaultTreeNode, parent?: DefaultTreeParentNode) => boolean|void;
+  getChildNodes?: GetChildNodes;
+}
+
+export const traverse = (node: DefaultTreeNode, visitor: Visitor, parent?: DefaultTreeParentNode) => {
+  const getChildNodes: GetChildNodes = visitor.getChildNodes ?? defaultChildNodes;
+  let visitChildren: boolean|void = true;
+
+  if (typeof visitor.pre === 'function') {
+    visitChildren = visitor.pre(node, parent);
+  }
+  
+  if (visitChildren !== false) {
+    const childNodes = getChildNodes(node as DefaultTreeParentNode);
+    if (childNodes !== undefined) {
+      for (const child of childNodes) {
+        traverse(child, visitor, node as DefaultTreeParentNode);
+      }
+    }
+  }
+
+  if (typeof visitor.post === 'function') {
+    visitor.post(node, parent);
+  }
+};

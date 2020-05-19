@@ -14,8 +14,7 @@
 
 import {ElementRenderer} from './element-renderer.js';
 import {LitElement, TemplateResult, CSSResult} from 'lit-element';
-import {render, RenderInfo} from './render-lit-html.js';
-import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
+import {render, renderValue, RenderInfo} from './render-lit-html.js';
 
 export type Constructor<T> = {new (): T};
 
@@ -23,31 +22,50 @@ export type Constructor<T> = {new (): T};
  * An object that renders elements of a certain type.
  */
 export class LitElementRenderer implements ElementRenderer {
-  *renderElement(
-    instance: LitElement,
-    _renderInfo: RenderInfo
-  ): IterableIterator<string> {
-    const renderResult = ((instance as unknown) as {
+  constructor(public element: LitElement) {}
+
+  *renderElement(): IterableIterator<string> {
+    const renderResult = ((this.element as unknown) as {
       render(): TemplateResult;
     }).render();
-    yield '<shadow-root>';
-    yield* render(renderResult);
-    yield '</shadow-root>';
-  }
-
-  *renderStyles(
-    _elementClass: Constructor<HTMLElement>
-  ): Iterator<string> {
-    const scopedStyles = [];
-    for (const [tagName, definition] of (customElements as any).__definitions) {
-      const styles = [(definition.ctor as any).styles].flat(Infinity);
-      for (const style of styles) {
-        if (style instanceof CSSResult) {
-          const scoped = StyleTransformer.css(style.cssText, tagName);
-          scopedStyles.push(scoped);
+    yield '<template shadowroot="open">';
+    // Render styles.
+    const ctor = customElements.get(this.element.tagName!);
+    const styles = [(ctor as any).styles].flat(Infinity);
+    let hasCssResult = false;
+    for (const style of styles) {
+      if (style instanceof CSSResult) {
+        if (!hasCssResult) {
+          hasCssResult = true;
+          yield '<style>';
         }
+        // TODO(sorvell): support ShadyCSS transformed styles. These should
+        // be written once.
+        //const scoped = StyleTransformer.css(style.cssText, tagName);
+        yield style.cssText;
       }
     }
-    return scopedStyles;
+    if (hasCssResult) {
+      yield '</style>';
+    }
+    yield* render(renderResult);
+    yield '</template>';
+  }
+
+  setProperty(name: string, value: unknown) {
+    (this.element as any)[name] = value;
+  }
+
+  setAttribute(name: string, value: string | null) {
+    // Note, this should always exist for LitElement, but we're not yet
+    // explicitly checking for LitElement.
+    if (this.element.attributeChangedCallback) {
+      this.element.attributeChangedCallback(name, null, value as string);
+    }
+  }
+
+  renderLight(renderInfo: RenderInfo) {
+    const templateResult = (this.element as any)?.renderLight();
+    return templateResult ? renderValue(templateResult, renderInfo) : '';
   }
 }
