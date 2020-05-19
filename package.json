@@ -51,7 +51,7 @@
     "koa-static": "^5.0.0",
     "lit-element": "Polymer/lit-html#hydration-hydrate",
     "lit-html": "Polymer/lit-html#hydration",
-    "template-shadowroot": "^0.0.0",
+    "template-shadowroot": "webcomponents/template-shadowroot",
     "parse5": "^5.1.0",
     "parse5-traverse": "^1.0.3",
     "resolve": "^1.10.1",
