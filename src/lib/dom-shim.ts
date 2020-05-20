@@ -57,8 +57,7 @@ class CustomElementRegistry {
   }
 }
 
-const btoa = (string: string) =>
-  Buffer.from(string, 'binary').toString('base64');
+const btoa = (s: string) => Buffer.from(s, 'binary').toString('base64');
 
 export const window = {
   HTMLElement,
