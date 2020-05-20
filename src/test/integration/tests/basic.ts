@@ -17,6 +17,7 @@ import {repeat} from 'lit-html/directives/repeat.js';
 import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
 import {classMap} from 'lit-html/directives/class-map.js';
+import {styleMap} from 'lit-html/directives/style-map.js';
 
 import { SSRTest } from './ssr-test';
 
@@ -683,6 +684,7 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'AttributePart accepts a directive: classMap': {
+    only: true,
     render(map: any) {
       return html`<div class=${classMap(map)}></div>`;
     },
@@ -696,6 +698,64 @@ export const tests: {[name: string] : SSRTest} = {
         html: '<div class="bar baz zug"></div>'
       }
     ],
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts a directive: classMap with statics': {
+    only: true,
+    render(map: any) {
+      return html`<div class="static1 ${classMap(map)} static2"></div>`;
+    },
+    expectations: [
+      {
+        args: [{foo: true, bar: false, baz: true}],
+        html: '<div class="static1 foo baz static2"></div>'
+      },
+      {
+        args: [{foo: false, bar: true, baz: true, zug: true}],
+        html: '<div class="static1 bar baz zug static2"></div>'
+      }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts a directive: styleMap': {
+    render(map: any) {
+      return html`<div style=${styleMap(map)}></div>`;
+    },
+    expectations: [
+      {
+        args: [{background: 'red', paddingTop: '10px', '--my-prop': 'green'}],
+        html: '<div style="background: red; padding-top: 10px; --my-prop:green;"></div>'
+      },
+      {
+        args: [{paddingTop: '20px', '--my-prop': 'gray', backgroundColor: 'white'}],
+        html: '<div style="padding-top: 20px; --my-prop:gray; background-color: white;"></div>'
+      }
+    ],
+    // styleMap does not dirty check individual properties before setting,
+    // which causes an attribute mutation even if the text has not changed
+    expectMutationsOnFirstRender: true,
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts a directive: styleMap with statics': {
+    render(map: any) {
+      return html`<div style="color: red; ${styleMap(map)} height: 3px;"></div>`;
+    },
+    expectations: [
+      {
+        args: [{background: 'green'}],
+        html: '<div style="color: red; background: green; height: 3px;"></div>'
+      },
+      {
+        args: [{paddingTop: '20px'}],
+        html: '<div style="color: red; height: 3px; padding-top: 20px;"></div>'
+      }
+    ],
+    // styleMap does not dirty check individual properties before setting,
+    // which causes an attribute mutation even if the text has not changed
+    expectMutationsOnFirstRender: true,
     stableSelectors: ['div'],
   },
 
