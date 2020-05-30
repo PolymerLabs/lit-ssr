@@ -715,7 +715,6 @@ export const tests: {[name: string] : SSRTest} = {
   'AttributePart accepts an array': {
     // TODO: Test currently fails: the default array.toString is being used
     // during SSR, causing commas between values to be rendered. To be fixed.
-    skip: true,
     render(x: any) {
       return html`<div class=${x}></div>`;
     },
@@ -730,6 +729,8 @@ export const tests: {[name: string] : SSRTest} = {
       }
     ],
     stableSelectors: ['div'],
+    // Setting an iterable always results in setAttribute being called
+    expectMutationsOnFirstRender: true,
   },
 
   'AttributePart accepts a directive: classMap': {
