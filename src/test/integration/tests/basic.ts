@@ -642,9 +642,6 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'AttributePart accepts noChange': {
-    // TODO: Test currently fails: `noChange` causes class="[object Object]"
-    // to be rendered; to be investigated
-    skip: true,
     render(x: any) {
       return html`<div class=${x}></div>`;
     },
@@ -1037,9 +1034,6 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'PropertyPart accepts noChange': {
-    // TODO: Test currently fails: SSR does not currently accept noChange in 
-    // property position. To fix.
-    skip: true,
     render(x: any) {
       return html`<div .foo=${x}></div>`;
     },
@@ -1402,8 +1396,6 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'BooleanAttributePart, initially noChange': {
-    // TODO: Test currently fails: `noChange` causes attribute to be rendered
-    skip: true,
     render(hide: boolean) {
       return html`<div ?hidden=${hide}></div>`;
     },

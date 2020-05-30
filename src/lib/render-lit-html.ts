@@ -440,7 +440,7 @@ export function* renderTemplateResult(
             );
           }
           const value = result.values[partIndex];
-          if (value) {
+          if (value && value !== noChange) {
             yield attributeName;
           }
         } else {
