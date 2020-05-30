@@ -459,8 +459,10 @@ export function* renderTemplateResult(
           // attr.value has the raw attribute value, which may contain multiple
           // bindings. Replace the markers with their resolved values.
           // TODO: escape the attribute string
-          const attributeString = `${attributeName}="${committer.getValue()}"`;
-          yield attributeString;
+          const value = committer.getValue();
+          if (value !== noChange) {
+            yield `${attributeName}="${value}"`;
+          }
         }
         partIndex += statics.length - 1;
         break;
