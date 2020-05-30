@@ -18,6 +18,7 @@ import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
 import {classMap} from 'lit-html/directives/class-map.js';
 import {styleMap} from 'lit-html/directives/style-map.js';
+import {until} from 'lit-html/directives/until.js';
 
 import { SSRTest } from './ssr-test';
 
@@ -432,7 +433,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['ol', 'li'],
   },
 
-  'NodePart accepts directive: repeat with strings': {
+  'NodePart accepts directive: repeat (with strings)': {
     render(words: string[]) {
       return html`${repeat(words, (word, i) => `(${i} ${word})`)}`;
     },
@@ -449,7 +450,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: [],
   },
 
-  'NodePart accepts directive: repeat with templates': {
+  'NodePart accepts directive: repeat (with templates)': {
     render(words: string[]) {
       return html`${repeat(words, (word, i) => html`<p>${i}) ${word}</p>`)}`;
     },
@@ -513,6 +514,57 @@ export const tests: {[name: string] : SSRTest} = {
           assert.equal(guardedCallCount, 2);
         }
       }
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: until (primitive)': {
+    render(...args) {
+      return html`<div>${until(...args)}</div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div>foo</div>',
+      },
+      {
+        args: ['bar'],
+        html: '<div>bar</div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: until (promise, primitive)': {
+    render(...args) {
+      return html`<div>${until(...args)}</div>`
+    },
+    expectations: [
+      {
+        args: [Promise.resolve('promise1'), 'foo'],
+        html: '<div>foo</div>',
+      },
+      {
+        args: [Promise.resolve('promise2'), 'bar'],
+        html: '<div>bar</div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: until (promise, promise)': {
+    render(...args) {
+      return html`<div>${until(...args)}</div>`
+    },
+    expectations: [
+      {
+        args: [Promise.resolve('promise1a'), Promise.resolve('promise1b')],
+        html: '<div></div>',
+      },
+      {
+        args: [Promise.resolve('promise2a'), Promise.resolve('promise2b')],
+        html: '<div></div>',
+      },
     ],
     stableSelectors: ['div'],
   },
@@ -684,7 +736,6 @@ export const tests: {[name: string] : SSRTest} = {
   },
 
   'AttributePart accepts a directive: classMap': {
-    only: true,
     render(map: any) {
       return html`<div class=${classMap(map)}></div>`;
     },
@@ -701,8 +752,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'AttributePart accepts a directive: classMap with statics': {
-    only: true,
+  'AttributePart accepts a directive: classMap (with statics)': {
     render(map: any) {
       return html`<div class="static1 ${classMap(map)} static2"></div>`;
     },
@@ -739,7 +789,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'AttributePart accepts a directive: styleMap with statics': {
+  'AttributePart accepts a directive: styleMap (with statics)': {
     render(map: any) {
       return html`<div style="color: red; ${styleMap(map)} height: 3px;"></div>`;
     },
@@ -756,6 +806,63 @@ export const tests: {[name: string] : SSRTest} = {
     // styleMap does not dirty check individual properties before setting,
     // which causes an attribute mutation even if the text has not changed
     expectMutationsOnFirstRender: true,
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts directive: until (primitive)': {
+    render(...args) {
+      return html`<div attr="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div attr="foo"></div>',
+      },
+      {
+        args: ['bar'],
+        html: '<div attr="bar"></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+    // until always calls setValue each render, with no dirty-check of previous
+    // value
+    expectMutationsOnFirstRender: true,
+  },
+
+  'AttributePart accepts directive: until (promise, primitive)': {
+    render(...args) {
+      return html`<div attr="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: [Promise.resolve('promise1'), 'foo'],
+        html: '<div attr="foo"></div>',
+      },
+      {
+        args: [Promise.resolve('promise2'), 'bar'],
+        html: '<div attr="bar"></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+    // until always calls setValue each render, with no dirty-check of previous
+    // value
+    expectMutationsOnFirstRender: true,
+  },
+
+  'AttributePart accepts directive: until (promise, promise)': {
+    render(...args) {
+      return html`<div attr="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: [Promise.resolve('promise1a'), Promise.resolve('promise1b')],
+        html: '<div></div>',
+      },
+      {
+        args: [Promise.resolve('promise2a'), Promise.resolve('promise2b')],
+        html: '<div></div>',
+      },
+    ],
     stableSelectors: ['div'],
   },
 
@@ -1135,7 +1242,7 @@ export const tests: {[name: string] : SSRTest} = {
         check(assert: Chai.Assert, dom: HTMLElement) {
           const button = dom.querySelector('button')!;
           button.click();
-          assert.strictEqual((button as any).__wasClicked, true);
+          assert.strictEqual((button as any).__wasClicked, true, 'not clicked during first render');
         }
       },
       {
@@ -1144,7 +1251,7 @@ export const tests: {[name: string] : SSRTest} = {
         check(assert: Chai.Assert, dom: HTMLElement) {
           const button = dom.querySelector('button')!;
           button.click();
-          assert.strictEqual((button as any).__wasClicked2, true);
+          assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during second render'););
         }
       }
     ],
