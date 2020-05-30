@@ -344,7 +344,7 @@ export function* renderValue(
     }
     value = null;
   } else if (isDirective(value)) {
-    const part = new NodePart({} as RenderOptions);
+    const part = new NodePart({isServerRendering: true} as RenderOptions);
     part.setValue(value);
     while (isDirective(part.__pendingValue)) {
       const directive = part.__pendingValue;
@@ -450,7 +450,8 @@ export function* renderTemplateResult(
           const committer = new AttributeCommitter(
             (undefined as any as Element),
             attributeName,
-            statics);
+            statics,
+            {isServerRendering: true} as RenderOptions);
           committer.parts.forEach((part, i) => {
             part.setValue(result.values[partIndex + i]);
             part.commit();
