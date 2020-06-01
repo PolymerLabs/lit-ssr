@@ -8,12 +8,27 @@
       "type": "node",
       "runtimeVersion": "13.12.0",
       "request": "launch",
-      "name": "Test: Integration",
+      "name": "Test: Integration (debug)",
       "skipFiles": [
         "<node_internals>/**"
       ],
       "program": "${workspaceFolder}/test/integration/test.js",
       "args": ["--debug"],
+      "outFiles": [
+        "${workspaceFolder}/./**/*.js"
+      ],
+      "runtimeArgs": ["--experimental-vm-modules"],
+    },
+    {
+      "type": "node",
+      "runtimeVersion": "13.12.0",
+      "request": "launch",
+      "name": "Test: Integration (manual)",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "program": "${workspaceFolder}/test/integration/test.js",
+      "args": ["--manual"],
       "outFiles": [
         "${workspaceFolder}/./**/*.js"
       ],
