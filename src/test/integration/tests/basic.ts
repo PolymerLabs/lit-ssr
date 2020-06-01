@@ -936,6 +936,43 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'AttributePart accepts directive: guard': () => {
+    let guardedCallCount = 0;
+    const guardedValue = (bool: boolean) => {
+      guardedCallCount++;
+      return bool ? 'true' : 'false';
+    }
+    return {
+      render(bool: boolean) {
+        return html`<div attr="${guard([bool], () => guardedValue(bool))}"></div>`
+      },
+      expectations: [
+        {
+          args: [true],
+          html: '<div attr="true"></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [true],
+          html: '<div attr="true"></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [false],
+          html: '<div attr="false"></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 2);
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+    };
+  },
+
   'AttributePart accepts directive: until (primitive)': {
     render(...args) {
       return html`<div attr="${until(...args)}"></div>`
