@@ -38,7 +38,8 @@ export const startServer = async (port = 9090) => {
     const {namespace} = await importModule(`../tests/${suiteName}-ssr.js`, import.meta.url, window);
     const module = namespace as typeof testModule;
 
-    const test = module.tests[testName] as SSRTest;
+    const testDescOrFn = module.tests[testName] as SSRTest;
+    const test = (typeof testDescOrFn === 'function') ? testDescOrFn() : testDescOrFn;
     const {render} = module;
     // For debugging:
     if (false) {

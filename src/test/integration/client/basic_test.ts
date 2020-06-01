@@ -51,7 +51,8 @@ suite('basic', () => {
   });
 
 
-  for (const [testName, testSetup] of Object.entries(tests)) {
+  for (const [testName, testDescOrFn] of Object.entries(tests)) {
+    let testSetup = (typeof testDescOrFn === 'function') ? testDescOrFn() : testDescOrFn;
     const {render: testRender, expectations, stableSelectors, expectMutationsOnFirstRender} = testSetup;
 
     const testFn = testSetup.skip ? test.skip : testSetup.only ? test.only : test;
@@ -100,7 +101,13 @@ suite('basic', () => {
 
         // Custom check
         if (check !== undefined) {
-          check(assert, container);
+          const ret = check(assert, container);
+          // Avoid introducing microtasks unless check function was
+          // explicitly async since rendering is synchronous, as generally
+          // we should be checking the rendering synchronously
+          if (ret && (ret as any).then) {
+            await ret;
+          }
         }
         i++;
       }

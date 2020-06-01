@@ -13,7 +13,8 @@
  */
 
 import { TemplateResult } from 'lit-html';
-export interface SSRTest {
+
+export interface SSRTestDescription {
   render(...args: any): TemplateResult;
   expectations: Array<{
 
@@ -29,7 +30,7 @@ export interface SSRTest {
      */
     html: string;
 
-    check?(assert: Chai.Assert, dom: HTMLElement): void;
+    check?(assert: Chai.Assert, dom: HTMLElement): void | Promise<unknown>;
   }>;
   /**
    * A list of selectors of elements that should no change between renders.
@@ -40,3 +41,7 @@ export interface SSRTest {
   skip?: boolean;
   only?: boolean;
 }
+
+export type SSRTestFactory = () => SSRTestDescription;
+
+export type SSRTest = SSRTestDescription | SSRTestFactory;

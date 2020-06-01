@@ -19,22 +19,15 @@ import {cache} from 'lit-html/directives/cache.js';
 import {classMap} from 'lit-html/directives/class-map.js';
 import {styleMap} from 'lit-html/directives/style-map.js';
 import {until} from 'lit-html/directives/until.js';
+import {asyncAppend} from 'lit-html/directives/async-append.js';
+import {asyncReplace} from 'lit-html/directives/async-replace.js';
+import {TestAsyncIterable} from 'lit-html/test/lib/test-async-iterable.js';
+
 
 import { SSRTest } from './ssr-test';
 
 const filterNodes = (nodes: ArrayLike<Node>, nodeType: number) =>
   Array.from(nodes).filter(n => n.nodeType === nodeType);
-
-const testSymbol = Symbol();
-const testObject = {};
-const testArray = [1,2,3];
-const testFunction = () => 'test function';
-
-let guardedCallCount = 0;
-const guardedTemplate = (bool: boolean) => {
-  guardedCallCount++;
-  return html`value is ${bool ? true : false}`;
-}
 
 export const tests: {[name: string] : SSRTest} = {
 
@@ -488,34 +481,41 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: [],
   },
 
-  'NodePart accepts directive: guard': {
-    render(bool: boolean) {
-      return html`<div>${guard([bool], () => guardedTemplate(bool))}</div>`
-    },
-    expectations: [
-      {
-        args: [true],
-        html: '<div>value is\n  true</div>',
-        check(assert: Chai.Assert) {
-          assert.equal(guardedCallCount, 1);
-        }
+  'NodePart accepts directive: guard': () => {
+    let guardedCallCount = 0;
+    const guardedTemplate = (bool: boolean) => {
+      guardedCallCount++;
+      return html`value is ${bool ? true : false}`;
+    }
+    return {
+      render(bool: boolean) {
+        return html`<div>${guard([bool], () => guardedTemplate(bool))}</div>`
       },
-      {
-        args: [true],
-        html: '<div>value is\n  true</div>',
-        check(assert: Chai.Assert) {
-          assert.equal(guardedCallCount, 1);
+      expectations: [
+        {
+          args: [true],
+          html: '<div>value is\n  true</div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [true],
+          html: '<div>value is\n  true</div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [false],
+          html: '<div>value is\n  false</div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 2);
+          }
         }
-      },
-      {
-        args: [false],
-        html: '<div>value is\n  false</div>',
-        check(assert: Chai.Assert) {
-          assert.equal(guardedCallCount, 2);
-        }
-      }
-    ],
-    stableSelectors: ['div'],
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
   'NodePart accepts directive: until (primitive)': {
@@ -535,38 +535,131 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'NodePart accepts directive: until (promise, primitive)': {
-    render(...args) {
-      return html`<div>${until(...args)}</div>`
-    },
-    expectations: [
-      {
-        args: [Promise.resolve('promise1'), 'foo'],
-        html: '<div>foo</div>',
+  'NodePart accepts directive: until (promise, primitive)': () => {
+    let resolve: (v: string) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<div>${until(...args)}</div>`
       },
-      {
-        args: [Promise.resolve('promise2'), 'bar'],
-        html: '<div>bar</div>',
-      },
-    ],
-    stableSelectors: ['div'],
+      expectations: [
+        {
+          args: [promise, 'foo'],
+          html: '<div>foo</div>',
+          async check() {
+            // Setup next render
+            resolve('promise');
+            await promise;
+          },
+        },
+        {
+          args: [promise, 'foo'],
+          html: '<div>promise</div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
-  'NodePart accepts directive: until (promise, promise)': {
-    render(...args) {
-      return html`<div>${until(...args)}</div>`
-    },
-    expectations: [
-      {
-        args: [Promise.resolve('promise1a'), Promise.resolve('promise1b')],
-        html: '<div></div>',
+  'NodePart accepts directive: until (promise, promise)': () => {
+    let resolve1: (v: string) => void;
+    let resolve2: (v: string) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<div>${until(...args)}</div>`
       },
-      {
-        args: [Promise.resolve('promise2a'), Promise.resolve('promise2b')],
-        html: '<div></div>',
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check() {
+            // Setup next render
+            resolve1('promise1');
+            await promise1;
+          },
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div>promise1</div>',
+          async check() {
+            // Setup next render
+            resolve2('promise2');
+            await promise2;
+          },
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div>promise2</div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    };
+  },
+
+  'NodePart accepts directive: asyncAppend': () => {
+    const iterable = new TestAsyncIterable();
+    return {
+      render(iterable) {
+        return html`<div>${asyncAppend(iterable)}</div>`
       },
-    ],
-    stableSelectors: ['div'],
+      expectations: [
+        {
+          args: [iterable],
+          html: '<div></div>',
+          check: async () => {
+            // Setup the next render
+            await iterable.push('a');
+          }
+        },
+        {
+          args: [iterable],
+          html: '<div>a</div>',
+          check: async () => {
+            // Setup the next render
+            await iterable.push('b');
+          }
+        },
+        {
+          args: [iterable],
+          html: '<div>\n  a\n  b\n</div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    };
+  },
+
+  'NodePart accepts directive: asyncReplace': () => {
+    const iterable = new TestAsyncIterable();
+    return {
+      render(iterable) {
+        return html`<div>${asyncReplace(iterable)}</div>`
+      },
+      expectations: [
+        {
+          args: [iterable],
+          html: '<div></div>',
+          check: async () => {
+            // Setup the next render
+            await iterable.push('a');
+          }
+        },
+        {
+          args: [iterable],
+          html: '<div>a</div>',
+          check: async () => {
+            // Setup the next render
+            await iterable.push('b');
+          }
+        },
+        {
+          args: [iterable],
+          html: '<div>b</div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
   /******************************************************
@@ -827,41 +920,70 @@ export const tests: {[name: string] : SSRTest} = {
     expectMutationsOnFirstRender: true,
   },
 
-  'AttributePart accepts directive: until (promise, primitive)': {
-    render(...args) {
-      return html`<div attr="${until(...args)}"></div>`
-    },
-    expectations: [
-      {
-        args: [Promise.resolve('promise1'), 'foo'],
-        html: '<div attr="foo"></div>',
+  'AttributePart accepts directive: until (promise, primitive)': () => {
+    let resolve: (v: string) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<div attr="${until(...args)}"></div>`
       },
-      {
-        args: [Promise.resolve('promise2'), 'bar'],
-        html: '<div attr="bar"></div>',
-      },
-    ],
-    stableSelectors: ['div'],
-    // until always calls setValue each render, with no dirty-check of previous
-    // value
-    expectMutationsOnFirstRender: true,
+      expectations: [
+        {
+          args: [promise, 'foo'],
+          html: '<div attr="foo"></div>',
+          async check() {
+            // Setup next render
+            resolve('promise');
+            await promise;
+          }
+        },
+        {
+          args: [promise, 'foo'],
+          html: '<div attr="promise"></div>',
+        },
+      ],
+      stableSelectors: ['div'],
+      // until always calls setValue each render, with no dirty-check of previous
+      // value
+      expectMutationsOnFirstRender: true,
+    };
   },
 
-  'AttributePart accepts directive: until (promise, promise)': {
-    render(...args) {
-      return html`<div attr="${until(...args)}"></div>`
-    },
-    expectations: [
-      {
-        args: [Promise.resolve('promise1a'), Promise.resolve('promise1b')],
-        html: '<div></div>',
+  'AttributePart accepts directive: until (promise, promise)': () => {
+    let resolve1: (v: string) => void;
+    let resolve2: (v: string) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<div attr="${until(...args)}"></div>`
       },
-      {
-        args: [Promise.resolve('promise2a'), Promise.resolve('promise2b')],
-        html: '<div></div>',
-      },
-    ],
-    stableSelectors: ['div'],
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check() {
+            // Setup next render
+            resolve1('promise1');
+            await promise1;
+          },
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div attr="promise1"></div>',
+          async check() {
+            // Setup next render
+            resolve2('promise2');
+            await promise2;
+          },
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div attr="promise2"></div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    }
   },
 
   'multiple AttributeParts on same node': {
@@ -1082,96 +1204,108 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'PropertyPart accepts a symbol': {
-    render(x: any) {
-      return html`<div .foo=${x}></div>`;
-    },
-    expectations: [
-      {
-        args: [testSymbol],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, testSymbol);
-        }
+  'PropertyPart accepts a symbol': () => {
+    const testSymbol = Symbol();
+    return {
+      render(x: any) {
+        return html`<div .foo=${x}></div>`;
       },
-      {
-        args: [1],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+      expectations: [
+        {
+          args: [testSymbol],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, testSymbol);
+          }
+        },
+        {
+          args: [1],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+          }
         }
-      }
-    ],
-    stableSelectors: ['div'],
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
-  'PropertyPart accepts an object': {
-    render(x: any) {
-      return html`<div .foo=${x}></div>`;
-    },
-    expectations: [
-      {
-        args: [testObject],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, testObject);
-        }
+  'PropertyPart accepts an object': () => {
+    const testObject = {};
+    return  {
+      render(x: any) {
+        return html`<div .foo=${x}></div>`;
       },
-      {
-        args: [1],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+      expectations: [
+        {
+          args: [testObject],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, testObject);
+          }
+        },
+        {
+          args: [1],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+          }
         }
-      }
-    ],
-    stableSelectors: ['div'],
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
-  'PropertyPart accepts an array': {
-    render(x: any) {
-      return html`<div .foo=${x}></div>`;
-    },
-    expectations: [
-      {
-        args: [testArray],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, testArray);
-        }
+  'PropertyPart accepts an array': () => {
+    const testArray = [1,2,3];
+    return {
+      render(x: any) {
+        return html`<div .foo=${x}></div>`;
       },
-      {
-        args: [1],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+      expectations: [
+        {
+          args: [testArray],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, testArray);
+          }
+        },
+        {
+          args: [1],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+          }
         }
-      }
-    ],
-    stableSelectors: ['div'],
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
-  'PropertyPart accepts a function': {
-    render(x: any) {
-      return html`<div .foo=${x}></div>`;
-    },
-    expectations: [
-      {
-        args: [testFunction],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, testFunction);
-        }
+  'PropertyPart accepts a function': () => {
+    const testFunction = () => 'test function';
+    return {
+      render(x: any) {
+        return html`<div .foo=${x}></div>`;
       },
-      {
-        args: [1],
-        html: '<div></div>',
-        check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+      expectations: [
+        {
+          args: [testFunction],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, testFunction);
+          }
+        },
+        {
+          args: [1],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).foo, 1);
+          }
         }
-      }
-    ],
-    stableSelectors: ['div'],
+      ],
+      stableSelectors: ['div'],
+    };
   },
 
   'multiple PropertyParts on same node': {
@@ -1246,7 +1380,7 @@ export const tests: {[name: string] : SSRTest} = {
         check(assert: Chai.Assert, dom: HTMLElement) {
           const button = dom.querySelector('button')!;
           button.click();
-          assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during second render'););
+          assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during second render');
         }
       }
     ],
