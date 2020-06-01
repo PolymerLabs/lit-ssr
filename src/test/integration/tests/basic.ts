@@ -23,6 +23,7 @@ import {asyncAppend} from 'lit-html/directives/async-append.js';
 import {asyncReplace} from 'lit-html/directives/async-replace.js';
 import {TestAsyncIterable} from 'lit-html/test/lib/test-async-iterable.js';
 import {ifDefined} from 'lit-html/directives/if-defined.js';
+import {live} from 'lit-html/directives/live.js';
 
 
 import { SSRTest } from './ssr-test';
@@ -861,7 +862,7 @@ export const tests: {[name: string] : SSRTest} = {
     expectMutationsOnFirstRender: true,
   },
 
-  'AttributePart accepts a directive: classMap': {
+  'AttributePart accepts directive: classMap': {
     render(map: any) {
       return html`<div class=${classMap(map)}></div>`;
     },
@@ -878,7 +879,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'AttributePart accepts a directive: classMap (with statics)': {
+  'AttributePart accepts directive: classMap (with statics)': {
     render(map: any) {
       return html`<div class="static1 ${classMap(map)} static2"></div>`;
     },
@@ -895,7 +896,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'AttributePart accepts a directive: styleMap': {
+  'AttributePart accepts directive: styleMap': {
     render(map: any) {
       return html`<div style=${styleMap(map)}></div>`;
     },
@@ -915,7 +916,7 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
-  'AttributePart accepts a directive: styleMap (with statics)': {
+  'AttributePart accepts directive: styleMap (with statics)': {
     render(map: any) {
       return html`<div style="color: red; ${styleMap(map)} height: 3px;"></div>`;
     },
@@ -1050,6 +1051,23 @@ export const tests: {[name: string] : SSRTest} = {
       {
         args: [undefined],
         html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts directive: live': {
+    render(v: string) {
+      return html`<div attr="${live(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div attr="foo"></div>',
+      },
+      {
+        args: ['bar'],
+        html: '<div attr="bar"></div>',
       },
     ],
     stableSelectors: ['div'],
