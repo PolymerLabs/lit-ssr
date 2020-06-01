@@ -22,6 +22,7 @@ import {until} from 'lit-html/directives/until.js';
 import {asyncAppend} from 'lit-html/directives/async-append.js';
 import {asyncReplace} from 'lit-html/directives/async-replace.js';
 import {TestAsyncIterable} from 'lit-html/test/lib/test-async-iterable.js';
+import {ifDefined} from 'lit-html/directives/if-defined.js';
 
 
 import { SSRTest } from './ssr-test';
@@ -662,6 +663,40 @@ export const tests: {[name: string] : SSRTest} = {
     };
   },
 
+  'NodePart accepts directive: ifDefined (undefined)': {
+    render(v) {
+      return html`<div>${ifDefined(v)}</div>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+      {
+        args: ['foo'],
+        html: '<div>foo</div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: ifDefined (defined)': {
+    render(v) {
+      return html`<div>${ifDefined(v)}</div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div>foo</div>',
+      },
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
   /******************************************************
    * AttributePart tests
    ******************************************************/
@@ -984,6 +1019,40 @@ export const tests: {[name: string] : SSRTest} = {
       ],
       stableSelectors: ['div'],
     }
+  },
+
+  'AttributePart accepts directive: ifDefined (undefined)': {
+    render(v) {
+      return html`<div attr="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+      {
+        args: ['foo'],
+        html: '<div attr="foo"></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'AttributePart accepts directive: ifDefined (defined)': {
+    render(v) {
+      return html`<div attr="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div attr="foo"></div>',
+      },
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
   },
 
   'multiple AttributeParts on same node': {
