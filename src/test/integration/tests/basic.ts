@@ -1633,7 +1633,6 @@ export const tests: {[name: string] : SSRTest} = {
   'PropertyPart accepts an object (reflected)': () => {
     const testObject = {};
     return  {
-      only: true,
       render(x: any) {
         return html`<div .className=${x}></div>`;
       },
@@ -1694,7 +1693,6 @@ export const tests: {[name: string] : SSRTest} = {
   'PropertyPart accepts an array (reflected)': () => {
     const testArray = [1,2,3];
     return {
-      only: true,
       render(x: any) {
         return html`<div .className=${x}></div>`;
       },
@@ -1755,7 +1753,6 @@ export const tests: {[name: string] : SSRTest} = {
   'PropertyPart accepts a function (reflected)': () => {
     const testFunction = () => 'test function';
     return {
-      only: true,
       render(x: any) {
         return html`<div .className=${x}></div>`;
       },
@@ -1827,6 +1824,53 @@ export const tests: {[name: string] : SSRTest} = {
     };
   },
 
+  'PropertyPart accepts directive: guard (reflected)': () => {
+    let guardedCallCount = 0;
+    const guardedValue = (v: string) => {
+      guardedCallCount++;
+      return v;
+    }
+    return {
+      render(v: string) {
+        return html`<div .className="${guard([v], () => guardedValue(v))}"></div>`
+      },
+      expectations: [
+        {
+          args: ['foo'],
+          html: '<div class="foo"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+          }
+        },
+        {
+          args: ['foo'],
+          html: '<div class="foo"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+          }
+        },
+        {
+          args: ['bar'],
+          html: '<div class="bar"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 2);
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'bar');
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
+    };
+  },
+
   'PropertyPart accepts directive: until (primitive)': {
     render(...args) {
       return html`<div .prop="${until(...args)}"></div>`
@@ -1848,6 +1892,38 @@ export const tests: {[name: string] : SSRTest} = {
       },
     ],
     stableSelectors: ['div'],
+    // until always calls setValue each render, with no dirty-check of previous
+    // value
+    expectMutationsOnFirstRender: true,
+  },
+
+  'PropertyPart accepts directive: until (primitive) (reflected)': {
+    render(...args) {
+      return html`<div .className="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div class="foo"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+        }
+      },
+      {
+        args: ['bar'],
+        html: '<div class="bar"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'bar');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
     // until always calls setValue each render, with no dirty-check of previous
     // value
     expectMutationsOnFirstRender: true,
@@ -1880,6 +1956,45 @@ export const tests: {[name: string] : SSRTest} = {
         },
       ],
       stableSelectors: ['div'],
+      // until always calls setValue each render, with no dirty-check of previous
+      // value
+      expectMutationsOnFirstRender: true,
+    };
+  },
+
+  'PropertyPart accepts directive: until (promise, primitive) (reflected)': () => {
+    let resolve: (v: string) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<div .className="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise, 'foo'],
+          html: '<div class="foo"></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+            // Setup next render
+            resolve('promise');
+            await promise;
+          }
+        },
+        {
+          args: [promise, 'foo'],
+          html: '<div class="promise"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'promise');
+          }
+        },
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
       // until always calls setValue each render, with no dirty-check of previous
       // value
       expectMutationsOnFirstRender: true,
@@ -1928,6 +2043,51 @@ export const tests: {[name: string] : SSRTest} = {
     }
   },
 
+  'PropertyPart accepts directive: until (promise, promise) (reflected)': () => {
+    let resolve1: (v: string) => void;
+    let resolve2: (v: string) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<div .className="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '');
+            // Setup next render
+            resolve1('promise1');
+            await promise1;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div class="promise1"></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'promise1');
+            // Setup next render
+            resolve2('promise2');
+            await promise2;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div class="promise2"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'promise2');
+          }
+        },
+      ],
+      stableSelectors: ['div'],
+    }
+  },
+
   'PropertyPart accepts directive: ifDefined (undefined)': {
     render(v) {
       return html`<div .prop="${ifDefined(v)}"></div>`
@@ -1951,6 +2111,31 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts directive: ifDefined (undefined) (reflected)': {
+    render(v) {
+      return html`<div .className="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '');
+        }
+      },
+      {
+        args: ['foo'],
+        html: '<div class="foo"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
   'PropertyPart accepts directive: ifDefined (defined)': {
     render(v) {
       return html`<div .prop="${ifDefined(v)}"></div>`
@@ -1967,11 +2152,43 @@ export const tests: {[name: string] : SSRTest} = {
         args: [undefined],
         html: '<div></div>',
         check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+          assert.strictEqual((dom.querySelector('div') as any).prop, undefined);
         }
       },
     ],
     stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts directive: ifDefined (defined) (reflected)': {
+    render(v) {
+      return html`<div .className="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div class="foo"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+        }
+      },
+      {
+        args: [undefined],
+        // `ifDefined` is supposed to be a no-op for non-attribute parts, which
+        // means it sets `undefined` through, which sets it to the className
+        // property which is coerced to 'undefined' and reflected
+        html: '<div class="undefined"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'undefined');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
   },
 
   'PropertyPart accepts directive: live': {
@@ -1991,6 +2208,31 @@ export const tests: {[name: string] : SSRTest} = {
         html: '<div></div>',
         check(assert: Chai.Assert, dom: HTMLElement) {
           assert.strictEqual((dom.querySelector('div') as any).prop, 'bar');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts directive: live (reflected)': {
+    render(v: string) {
+      return html`<div .className="${live(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div class="foo"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+        }
+      },
+      {
+        args: ['bar'],
+        html: '<div class="bar"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'bar');
         }
       },
     ],

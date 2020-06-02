@@ -22,6 +22,7 @@ import {
   RenderOptions,
   AttributeCommitter,
   BooleanAttributePart,
+  PropertyCommitter,
 } from 'lit-html';
 import {
   marker,
@@ -415,20 +416,40 @@ export function* renderTemplateResult(
         const prefix = attributeName[0];
         if (prefix === '.') {
           const propertyName = name.substring(1);
-          const value = result.values[partIndex];
-          if (op.useCustomElementInstance) {
-            const instance = getLast(renderInfo.customElementInstanceStack);
-            if (instance !== undefined) {
-              (instance as any)[propertyName] = value;
-            }
-          }
           // Property should be reflected to attribute
           const reflectedName = reflectedAttributeName(
             op.tagName,
             propertyName
           );
-          if (reflectedName !== undefined) {
-            yield `${reflectedName}="${value}"`;
+          // Property should be set to custom element instance
+          const instance = op.useCustomElementInstance && 
+            getLast(renderInfo.customElementInstanceStack);
+          if (instance || reflectedName !== undefined) {
+            // Obvious bad hack below; avoids breaking type change for now,
+            // since committer.element is expected to be an element, but
+            // won't be during SSR. To be discussed.
+            const committer = new PropertyCommitter(
+              (undefined as any as Element),
+              attributeName,
+              statics,
+              {isServerRendering: true} as RenderOptions);
+            committer.parts.forEach((part, i) => {
+              part.setValue(result.values[partIndex + i]);
+              part.commit();
+            });
+            if (committer.dirty) {
+              const value = committer.getValue();
+              if (value !== noChange) {
+                const instance = getLast(renderInfo.customElementInstanceStack);
+                if (instance) {
+                  (instance as any)[propertyName] = value;
+                }
+                if (reflectedName !== undefined) {
+                  yield `${reflectedName}="${value}"`;
+                }
+
+              }
+            }
           }
         } else if (prefix === '@') {
           // Event binding, do nothing with values
