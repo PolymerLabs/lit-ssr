@@ -53,7 +53,7 @@ suite('basic', () => {
 
   for (const [testName, testDescOrFn] of Object.entries(tests)) {
     let testSetup = (typeof testDescOrFn === 'function') ? testDescOrFn() : testDescOrFn;
-    const {render: testRender, expectations, stableSelectors, expectMutationsOnFirstRender} = testSetup;
+    const {render: testRender, expectations, stableSelectors, expectMutationsOnFirstRender, expectMutationsDuringHydration} = testSetup;
 
     const testFn = testSetup.skip ? test.skip : testSetup.only ? test.only : test;
 
@@ -64,7 +64,7 @@ suite('basic', () => {
       container.innerHTML = await response.text();
 
       // The first expectation args are used in the server render. Check the DOM
-      // pre-hydration to make sure they're correct. The DOM is chaned again
+      // pre-hydration to make sure they're correct. The DOM is changed again
       // against the first expectation after hydration in the loop below.
       assert.lightDom.equal(container, expectations[0].html);
       const stableNodes = stableSelectors.map(
@@ -77,7 +77,9 @@ suite('basic', () => {
           hydrate(testRender(...args), container);
           // Hydration should cause no DOM mutations, because it does not
           // actually update the DOM - it just recreates data structures
-          assert.isEmpty(getMutations(), 'Hydration should cause no DOM mutations');
+          if (!expectMutationsDuringHydration) {
+            assert.isEmpty(getMutations(), 'Hydration should cause no DOM mutations');
+          }
           clearMutations();
 
           // After hydration, render() will be operable.

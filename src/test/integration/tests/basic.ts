@@ -1188,6 +1188,33 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts a string (reflected)': {
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div class="foo"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo');
+        }
+      },
+      {
+        args: ['foo2'],
+        html: '<div class="foo2"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual(dom.querySelector('div')!.className, 'foo2');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
+  },
+
   'PropertyPart accepts a number': {
     render(x: any) {
       return html`<div .foo=${x}></div>`;
@@ -1209,6 +1236,35 @@ export const tests: {[name: string] : SSRTest} = {
       }
     ],
     stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts a number (reflected)': {
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [1],
+        html: '<div class="1"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '1');
+        }
+      },
+      {
+        args: [2],
+        html: '<div class="2"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '2');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
   },
 
   'PropertyPart accepts a boolean': {
@@ -1234,6 +1290,35 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts a boolean (reflected)': {
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [false],
+        html: '<div class="false"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'false');
+        }
+      },
+      {
+        args: [true],
+        html: '<div class="true"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'true');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
+  },
+
   'PropertyPart accepts undefined': {
     render(x: any) {
       return html`<div .foo=${x}></div>`;
@@ -1257,6 +1342,35 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts undefined (reflected)': {
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div class="undefined"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'undefined');
+        }
+      },
+      {
+        args: [1],
+        html: '<div class="1"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '1');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
+  },
+
   'PropertyPart accepts null': {
     render(x: any) {
       return html`<div .foo=${x}></div>`;
@@ -1278,6 +1392,35 @@ export const tests: {[name: string] : SSRTest} = {
       }
     ],
     stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts null (reflected)': {
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [null],
+        html: '<div class="null"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, 'null');
+        }
+      },
+      {
+        args: [1],
+        html: '<div class="1"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '1');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
   },
 
   'PropertyPart accepts noChange': {
@@ -1306,6 +1449,43 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts noChange (reflected)': {
+    // TODO: Right now, SSR just reflects the raw value noChange, so it gets
+    // '[object Object]' in the HTML, but when hydration runes, the committer
+    // sets 'undefined' (which gets reflectd), so there's no way to write a
+    // correct test; we should either fix the client-side to not set
+    // `undefined`, or else just serialize 'undefined' for noChange on the server
+    skip: true,
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [noChange],
+        html: '<div class="undefined"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Ideally this would be `notProperty`, but this is actually how
+          // the client-side works right now, because the committer starts off
+          // as dirty
+          assert.strictEqual(dom.querySelector('div')!.className, undefined);
+        }
+      },
+      {
+        args: [1],
+        html: '<div class="1"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '1');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
+  },
+
   'PropertyPart accepts nothing': {
     // TODO: the current client-side does nothing special with `nothing`, just
     // passes it on to the property; is that what we want?
@@ -1331,6 +1511,39 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'PropertyPart accepts nothing (reflected)': {
+    // TODO: the current client-side does nothing special with `nothing`, just
+    // passes it on to the property; is that what we want?
+    render(x: any) {
+      return html`<div .className=${x}></div>`;
+    },
+    expectations: [
+      {
+        args: [nothing],
+        html: '<div class="[object Object]"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '[object Object]');
+        }
+      },
+      {
+        args: [1],
+        html: '<div class="1"></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          // Note className coerces to string
+          assert.strictEqual(dom.querySelector('div')!.className, '1');
+        }
+      }
+    ],
+    stableSelectors: ['div'],
+    // We set properties during hydration, and natively-reflecting properties
+    // will trigger a "mutation" even when set to the same value that was
+    // rendered to its attribute
+    expectMutationsDuringHydration: true,
+    // Objects don't dirty check, so we get another mutation during first render
+    expectMutationsOnFirstRender: true,
+  },
+
   'PropertyPart accepts a symbol': () => {
     const testSymbol = Symbol();
     return {
@@ -1354,6 +1567,40 @@ export const tests: {[name: string] : SSRTest} = {
         }
       ],
       stableSelectors: ['div'],
+    };
+  },
+
+  'PropertyPart accepts a symbol (reflected)': () => {
+    const testSymbol = Symbol('testSymbol');
+    return {
+      // Symbols can't be set to string-coercing properties like className & id
+      skip: true,
+      render(x: any) {
+        return html`<div .className=${x}></div>`;
+      },
+      expectations: [
+        {
+          args: [testSymbol],
+          html: '<div class="Symbol(testSymbol)"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, 'Symbol(testSymbol)');
+          }
+        },
+        {
+          args: [1],
+          html: '<div class="1"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '1');
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
     };
   },
 
@@ -1383,6 +1630,41 @@ export const tests: {[name: string] : SSRTest} = {
     };
   },
 
+  'PropertyPart accepts an object (reflected)': () => {
+    const testObject = {};
+    return  {
+      only: true,
+      render(x: any) {
+        return html`<div .className=${x}></div>`;
+      },
+      expectations: [
+        {
+          args: [testObject],
+          html: '<div class="[object Object]"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '[object Object]');
+          }
+        },
+        {
+          args: [1],
+          html: '<div class="1"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '1');
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
+      // Objects don't dirty check, so we get another mutation during first render
+      expectMutationsOnFirstRender: true,
+    };
+  },
+
   'PropertyPart accepts an array': () => {
     const testArray = [1,2,3];
     return {
@@ -1409,6 +1691,41 @@ export const tests: {[name: string] : SSRTest} = {
     };
   },
 
+  'PropertyPart accepts an array (reflected)': () => {
+    const testArray = [1,2,3];
+    return {
+      only: true,
+      render(x: any) {
+        return html`<div .className=${x}></div>`;
+      },
+      expectations: [
+        {
+          args: [testArray],
+          html: '<div class="1,2,3"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '1,2,3');
+          }
+        },
+        {
+          args: [1],
+          html: '<div class="1"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '1');
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
+      // Arrays don't dirty check, so we get another mutation during first render
+      expectMutationsOnFirstRender: true,
+    };
+  },
+
   'PropertyPart accepts a function': () => {
     const testFunction = () => 'test function';
     return {
@@ -1432,6 +1749,41 @@ export const tests: {[name: string] : SSRTest} = {
         }
       ],
       stableSelectors: ['div'],
+    };
+  },
+
+  'PropertyPart accepts a function (reflected)': () => {
+    const testFunction = () => 'test function';
+    return {
+      only: true,
+      render(x: any) {
+        return html`<div .className=${x}></div>`;
+      },
+      expectations: [
+        {
+          args: [testFunction],
+          html: `<div class="() => 'test function'"></div>`,
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, `() => 'test function'`);
+          }
+        },
+        {
+          args: [1],
+          html: '<div class="1"></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            // Note className coerces to string
+            assert.strictEqual(dom.querySelector('div')!.className, '1');
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+      // We set properties during hydration, and natively-reflecting properties
+      // will trigger a "mutation" even when set to the same value that was
+      // rendered to its attribute
+      expectMutationsDuringHydration: true,
+      // Arrays don't dirty check, so we get another mutation during first render
+      expectMutationsOnFirstRender: true,
     };
   },
 

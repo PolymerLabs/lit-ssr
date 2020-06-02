@@ -38,6 +38,7 @@ export interface SSRTestDescription {
    */
   stableSelectors: Array<string>;
   expectMutationsOnFirstRender?: boolean,
+  expectMutationsDuringHydration?: boolean,
   skip?: boolean;
   only?: boolean;
 }
