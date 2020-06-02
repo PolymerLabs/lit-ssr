@@ -105,7 +105,7 @@ suite('basic', () => {
         if (check !== undefined) {
           const ret = check(assert, container);
           // Avoid introducing microtasks unless check function was
-          // explicitly async since rendering is synchronous, as generally
+          // explicitly async, since rendering is synchronous and generally
           // we should be checking the rendering synchronously
           if (ret && (ret as any).then) {
             await ret;

@@ -425,9 +425,11 @@ export function* renderTemplateResult(
           const instance = op.useCustomElementInstance && 
             getLast(renderInfo.customElementInstanceStack);
           if (instance || reflectedName !== undefined) {
-            // Obvious bad hack below; avoids breaking type change for now,
-            // since committer.element is expected to be an element, but
-            // won't be during SSR. To be discussed.
+            // TODO(kschaaf): Passing `undefined` for element to avoid breaking
+            // type change for now, since committer.element is required, but
+            // won't be during SSR. Directives must currently test
+            // `options.isServerRendering` before interacting with the DOM. To
+            // be discussed.
             const committer = new PropertyCommitter(
               (undefined as any as Element),
               attributeName,
@@ -467,9 +469,11 @@ export function* renderTemplateResult(
             yield attributeName;
           }
         } else {
-          // Obvious bad hack below; avoids breaking type change for now,
-          // since committer.element is expected to be an element, but
-          // won't be during SSR. To be discussed.
+          // TODO(kschaaf): Passing `undefined` for element to avoid breaking
+          // type change for now, since committer.element is required, but
+          // won't be during SSR. Directives must currently test
+          // `options.isServerRendering` before interacting with the DOM. To
+          // be discussed.
           const committer = new AttributeCommitter(
             (undefined as any as Element),
             attributeName,
@@ -479,8 +483,6 @@ export function* renderTemplateResult(
             part.setValue(result.values[partIndex + i]);
             part.commit();
           });
-          // attr.value has the raw attribute value, which may contain multiple
-          // bindings. Replace the markers with their resolved values.
           // TODO: escape the attribute string
           const value = committer.getValue();
           if (value !== noChange) {
