@@ -30,7 +30,10 @@ export class IterableReader<T> extends Readable {
       const r = this._iterator.next();
       this.push(r.done ? null : r.value);
     } catch (e) {
-      this.emit('error', e);
+      // Because the error may be thrown across realms, it won't pass an
+      // `e instanceof Error` check in Koa's default error handling; instead
+      // propagate the error string so we can get some context at least
+      this.emit('error', e.stack.toString());
     }
   }
 }
