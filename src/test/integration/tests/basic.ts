@@ -1884,6 +1884,180 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div'],
   },
 
+  'BooleanAttributePart accepts directive: guard': () => {
+    let guardedCallCount = 0;
+    const guardedValue = (bool: boolean) => {
+      guardedCallCount++;
+      return bool;
+    }
+    return {
+      render(bool: boolean) {
+        return html`<div ?hidden="${guard([bool], () => guardedValue(bool))}"></div>`
+      },
+      expectations: [
+        {
+          args: [true],
+          html: '<div hidden></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [true],
+          html: '<div hidden></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 1);
+          }
+        },
+        {
+          args: [false],
+          html: '<div></div>',
+          check(assert: Chai.Assert) {
+            assert.equal(guardedCallCount, 2);
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+    };
+  },
+
+  'BooleanAttributePart accepts directive: until (primitive)': {
+    render(...args) {
+      return html`<div ?hidden="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [false],
+        html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+    // until always calls setValue each render, with no dirty-check of previous
+    // value
+    expectMutationsOnFirstRender: true,
+  },
+
+  'BooleanAttributePart accepts directive: until (promise, primitive)': () => {
+    let resolve: (v: boolean) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<div ?hidden="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise, true],
+          html: '<div hidden></div>',
+          async check() {
+            // Setup next render
+            resolve(false);
+            await promise;
+          }
+        },
+        {
+          args: [promise, true],
+          html: '<div></div>',
+        },
+      ],
+      stableSelectors: ['div'],
+      // until always calls setValue each render, with no dirty-check of previous
+      // value
+      expectMutationsOnFirstRender: true,
+    };
+  },
+
+  'BooleanAttributePart accepts directive: until (promise, promise)': () => {
+    let resolve1: (v: boolean) => void;
+    let resolve2: (v: boolean) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<div ?hidden="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check() {
+            // Setup next render
+            resolve1(true);
+            await promise1;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div hidden></div>',
+          async check() {
+            // Setup next render
+            resolve2(false);
+            await promise2;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+        },
+      ],
+      stableSelectors: ['div'],
+    }
+  },
+
+  'BooleanAttributePart accepts directive: ifDefined (undefined)': {
+    render(v) {
+      return html`<div ?hidden="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+      {
+        args: ['foo'],
+        html: '<div hidden></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart accepts directive: ifDefined (defined)': {
+    render(v) {
+      return html`<div ?hidden="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [undefined],
+        html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'BooleanAttributePart accepts directive: live': {
+    render(v: boolean) {
+      return html`<div ?hidden="${live(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: [true],
+        html: '<div hidden></div>',
+      },
+      {
+        args: [false],
+        html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
   /******************************************************
    * Mixed part tests
    ******************************************************/

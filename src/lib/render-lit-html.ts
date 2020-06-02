@@ -21,6 +21,7 @@ import {
   NodePart,
   RenderOptions,
   AttributeCommitter,
+  BooleanAttributePart,
 } from 'lit-html';
 import {
   marker,
@@ -434,13 +435,14 @@ export function* renderTemplateResult(
         } else if (prefix === '?') {
           // Boolean attribute binding
           attributeName = attributeName.substring(1);
-          if (statics.length !== 2 || statics[0] !== '' || statics[1] !== '') {
-            throw new Error(
-              'Boolean attributes can only contain a single expression'
-            );
-          }
-          const value = result.values[partIndex];
-          if (value && value !== noChange) {
+          const part = new BooleanAttributePart(
+            (undefined as any as Element),
+            attributeName,
+            statics
+          );
+          part.setValue(result.values[partIndex]);
+          part.commit();
+          if (part.value && part.value !== noChange) {
             yield attributeName;
           }
         } else {
