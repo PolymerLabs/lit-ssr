@@ -1289,7 +1289,10 @@ export const tests: {[name: string] : SSRTest} = {
         args: [noChange],
         html: '<div></div>',
         check(assert: Chai.Assert, dom: HTMLElement) {
-          assert.notProperty(dom.querySelector('div'), 'foo');
+          // Ideally this would be `notProperty`, but this is actually how
+          // the client-side works right now, because the committer starts off
+          // as dirty
+          assert.strictEqual((dom.querySelector('div') as any).foo, undefined);
         }
       },
       {
@@ -1430,6 +1433,216 @@ export const tests: {[name: string] : SSRTest} = {
       ],
       stableSelectors: ['div'],
     };
+  },
+
+  'PropertyPart accepts directive: guard': () => {
+    let guardedCallCount = 0;
+    const guardedValue = (bool: boolean) => {
+      guardedCallCount++;
+      return bool;
+    }
+    return {
+      render(bool: boolean) {
+        return html`<div .prop="${guard([bool], () => guardedValue(bool))}"></div>`
+      },
+      expectations: [
+        {
+          args: [true],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            assert.strictEqual((dom.querySelector('div') as any).prop, true);
+          }
+        },
+        {
+          args: [true],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            assert.strictEqual((dom.querySelector('div') as any).prop, true);
+          }
+        },
+        {
+          args: [false],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 2);
+            assert.strictEqual((dom.querySelector('div') as any).prop, false);
+          }
+        }
+      ],
+      stableSelectors: ['div'],
+    };
+  },
+
+  'PropertyPart accepts directive: until (primitive)': {
+    render(...args) {
+      return html`<div .prop="${until(...args)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+        }
+      },
+      {
+        args: ['bar'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'bar');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+    // until always calls setValue each render, with no dirty-check of previous
+    // value
+    expectMutationsOnFirstRender: true,
+  },
+
+  'PropertyPart accepts directive: until (promise, primitive)': () => {
+    let resolve: (v: string) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<div .prop="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise, 'foo'],
+          html: '<div></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+            // Setup next render
+            resolve('promise');
+            await promise;
+          }
+        },
+        {
+          args: [promise, 'foo'],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).prop, 'promise');
+          }
+        },
+      ],
+      stableSelectors: ['div'],
+      // until always calls setValue each render, with no dirty-check of previous
+      // value
+      expectMutationsOnFirstRender: true,
+    };
+  },
+
+  'PropertyPart accepts directive: until (promise, promise)': () => {
+    let resolve1: (v: string) => void;
+    let resolve2: (v: string) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<div .prop="${until(...args)}"></div>`
+      },
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.notProperty((dom.querySelector('div') as any), 'prop');
+            // Setup next render
+            resolve1('promise1');
+            await promise1;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).prop, 'promise1');
+            // Setup next render
+            resolve2('promise2');
+            await promise2;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<div></div>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.strictEqual((dom.querySelector('div') as any).prop, 'promise2');
+          }
+        },
+      ],
+      stableSelectors: ['div'],
+    }
+  },
+
+  'PropertyPart accepts directive: ifDefined (undefined)': {
+    render(v) {
+      return html`<div .prop="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.notProperty((dom.querySelector('div') as any), 'prop');
+        }
+      },
+      {
+        args: ['foo'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts directive: ifDefined (defined)': {
+    render(v) {
+      return html`<div .prop="${ifDefined(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+        }
+      },
+      {
+        args: [undefined],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'PropertyPart accepts directive: live': {
+    render(v: string) {
+      return html`<div .prop="${live(v)}"></div>`
+    },
+    expectations: [
+      {
+        args: ['foo'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
+        }
+      },
+      {
+        args: ['bar'],
+        html: '<div></div>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.strictEqual((dom.querySelector('div') as any).prop, 'bar');
+        }
+      },
+    ],
+    stableSelectors: ['div'],
   },
 
   'multiple PropertyParts on same node': {
