@@ -1724,6 +1724,228 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['button'],
   },
 
+  'EventPart accepts directive: guard': () => {
+    const listener1 = (e: Event) => (e.target as any).__wasClicked1 = true;
+    const listener2 = (e: Event) => (e.target as any).__wasClicked2 = true;
+    let guardedCallCount = 0;
+    const guardedValue = (fn: (e: Event) => any) => {
+      guardedCallCount++;
+      return fn;
+    }
+    return {
+      render(fn: (e: Event) => any) {
+        return html`<button @click="${guard([fn], () => guardedValue(fn))}">X</button>`
+      },
+      expectations: [
+        {
+          args: [listener1],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during first render');
+          }
+        },
+        {
+          args: [listener1],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 1);
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during second render');
+          }
+        },
+        {
+          args: [listener2],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.equal(guardedCallCount, 2);
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during third render');
+          }
+        }
+      ],
+      stableSelectors: ['button'],
+    };
+  },
+
+  'EventPart accepts directive: until (listener)': () => {
+    const listener1 = (e: Event) => (e.target as any).__wasClicked1 = true;
+    const listener2 = (e: Event) => (e.target as any).__wasClicked2 = true;
+    return {
+      render(...args) {
+        return html`<button @click="${until(...args)}">X</button>`
+      },
+      expectations: [
+        {
+          args: [listener1],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during first render');
+          }
+        },
+        {
+          args: [listener2],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during second render');
+          }
+        },
+      ],
+      stableSelectors: ['button'],
+    };
+  },
+
+  'EventPart accepts directive: until (promise, listener)': () => {
+    const listener1 = (e: Event) => (e.target as any).__wasClicked1 = true;
+    const listener2 = (e: Event) => (e.target as any).__wasClicked2 = true;
+    let resolve: (v: (e: Event) => any) => void;
+    const promise = new Promise(r => resolve = r);
+    return {
+      render(...args) {
+        return html`<button @click="${until(...args)}">X</button>`
+      },
+      expectations: [
+        {
+          args: [promise, listener1],
+          html: '<button>X</button>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during first render');
+            // Setup next render
+            resolve(listener2);
+            await promise;
+          }
+        },
+        {
+          args: [promise, listener1],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during second render');
+          }
+        },
+      ],
+      stableSelectors: ['button'],
+    };
+  },
+
+  'EventPart accepts directive: until (promise, promise)': () => {
+    const listener1 = (e: Event) => (e.target as any).__wasClicked1 = true;
+    const listener2 = (e: Event) => (e.target as any).__wasClicked2 = true;
+    let resolve1: (v: (e: Event) => any) => void;
+    let resolve2: (v: (e: Event) => any) => void;
+    const promise1 = new Promise(r => resolve1 = r);
+    const promise2 = new Promise(r => resolve2 = r);
+    return {
+      render(...args) {
+        return html`<button @click="${until(...args)}">X</button>`
+      },
+      expectations: [
+        {
+          args: [promise2, promise1],
+          html: '<button>X</button>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            assert.notProperty((dom.querySelector('button') as any), 'prop');
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.notProperty(button, '__wasClicked1', 'was clicked during first render');
+            // Setup next render
+            resolve1(listener1);
+            await promise1;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<button>X</button>',
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during second render');
+            // Setup next render
+            resolve2(listener2);
+            await promise2;
+          }
+        },
+        {
+          args: [promise2, promise1],
+          html: '<button>X</button>',
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            const button = dom.querySelector('button')!;
+            button.click();
+            assert.strictEqual((button as any).__wasClicked2, true, 'not clicked during third render');
+          }
+        },
+      ],
+      stableSelectors: ['button'],
+    }
+  },
+
+  'EventPart accepts directive: ifDefined (undefined)': {
+    render(v) {
+      return html`<button @click="${ifDefined(v)}">X</button>`
+    },
+    expectations: [
+      {
+        args: [undefined],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.notProperty((dom.querySelector('button') as any), 'prop');
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.notProperty(button, '__wasClicked1', 'was clicked during first render');
+        }
+      },
+      {
+        args: [(e: Event) => (e.target as any).__wasClicked = true],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.strictEqual((button as any).__wasClicked, true, 'not clicked during second render');
+        }
+      },
+    ],
+    stableSelectors: ['button'],
+  },
+
+  'EventPart accepts directive: ifDefined (defined)': {
+    render(v) {
+      return html`<button @click="${ifDefined(v)}">X</button>`
+    },
+    expectations: [
+      {
+        args: [(e: Event) => (e.target as any).__wasClicked = true],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.strictEqual((button as any).__wasClicked, true, 'not clicked during second render');
+        }
+      },
+      {
+        args: [undefined],
+        html: '<button>X</button>',
+        check(assert: Chai.Assert, dom: HTMLElement) {
+          assert.notProperty((dom.querySelector('button') as any), 'prop');
+          const button = dom.querySelector('button')!;
+          button.click();
+          assert.notProperty(button, '__wasClicked1', 'was clicked during first render');
+        }
+      },
+    ],
+    stableSelectors: ['button'],
+  },
+
   /******************************************************
    * BooleanAttributePart tests
    ******************************************************/
