@@ -459,8 +459,8 @@ export function* renderTemplateResult(
           const part = new BooleanAttributePart(
             (undefined as any as Element),
             attributeName,
-            statics
-          );
+            statics,
+            {isServerRendering: true} as RenderOptions);
           part.setValue(result.values[partIndex]);
           part.commit();
           if (part.value && part.value !== noChange) {
