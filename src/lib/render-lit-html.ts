@@ -64,7 +64,7 @@ const templateCache = new Map<
   }
 >();
 
-const directiveSSRDomError = (dom: string) => 
+const directiveSSRError = (dom: string) => 
   `Directives must not access ${dom} during SSR; ` +
   `directives must only call setValue() during initial render.`
 
@@ -74,11 +74,11 @@ class SSRNodePart extends NodePart {
     this.isServerRendering = true;
   }
   get startNode(): Element {
-    throw new Error(directiveSSRDomError('NodePart:startNode'));
+    throw new Error(directiveSSRError('NodePart:startNode'));
   }
   set startNode(_v) {}
   get endNode(): Element {
-    throw new Error(directiveSSRDomError('NodePart:endNode'));
+    throw new Error(directiveSSRError('NodePart:endNode'));
   }
   set endNode(_v) {}
 }
@@ -92,7 +92,7 @@ class SSRAttributeCommitter extends AttributeCommitter {
     return new SSRAttributePart(this);
   }
   get element(): Element {
-    throw new Error(directiveSSRDomError('AttributeCommitter:element'));
+    throw new Error(directiveSSRError('AttributeCommitter:element'));
   }
   set element(_v) {}
 }
@@ -113,7 +113,7 @@ class SSRPropertyCommitter extends PropertyCommitter {
     return new SSRPropertyPart(this);
   }
   get element(): Element {
-    throw new Error(directiveSSRDomError('PropertyCommitter:element'));
+    throw new Error(directiveSSRError('PropertyCommitter:element'));
   }
   set element(_v) {}
 }
@@ -131,17 +131,17 @@ class SSRBooleanAttributePart extends BooleanAttributePart {
     this.isServerRendering = true;
   }
   get element(): Element {
-    throw new Error(directiveSSRDomError('BooleanAttributePart:element'));
+    throw new Error(directiveSSRError('BooleanAttributePart:element'));
   }
   set element(_v) {}
 }
 
 const ssrRenderOptions: RenderOptions = {
   get templateFactory(): TemplateFactory {
-    throw new Error(directiveSSRDomError('RenderOptions:templateFactory'));
+    throw new Error(directiveSSRError('RenderOptions:templateFactory'));
   },
   get eventContext(): EventTarget {
-    throw new Error(directiveSSRDomError('RenderOptions:eventContext'));
+    throw new Error(directiveSSRError('RenderOptions:eventContext'));
   }
 };
 
