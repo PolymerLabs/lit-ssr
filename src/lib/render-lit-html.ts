@@ -45,7 +45,7 @@ import {
 
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import {isDirective} from 'lit-html/lib/directive.js';
+import {isDirective, DirectiveFn} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 import {LitElementRenderer} from './lit-element-renderer.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
@@ -432,12 +432,10 @@ export function* renderValue(
   } else if (isDirective(value)) {
     const part = new SSRNodePart(ssrRenderOptions);
     part.setValue(value);
-    while (isDirective(part.__pendingValue)) {
-      const directive = part.__pendingValue;
-      part.__pendingValue = noChange;
-      directive(part);
+    while (isDirective(value = part.getPendingValue())) {
+      part.setValue(noChange);
+      (value as DirectiveFn)(part);
     }
-    value = part.__pendingValue;
   }
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
