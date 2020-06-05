@@ -45,7 +45,7 @@ import {
 
 import {LitElement, CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import {isDirective, DirectiveFn} from 'lit-html/lib/directive.js';
+import {isDirective} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 import {LitElementRenderer} from './lit-element-renderer.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
@@ -432,10 +432,7 @@ export function* renderValue(
   } else if (isDirective(value)) {
     const part = new SSRNodePart(ssrRenderOptions);
     part.setValue(value);
-    while (isDirective(value = part.getPendingValue())) {
-      part.setValue(noChange);
-      (value as DirectiveFn)(part);
-    }
+    value = part.resolvePendingDirective();
   }
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
@@ -507,17 +504,12 @@ export function* renderTemplateResult(
           const instance = op.useCustomElementInstance && 
             getLast(renderInfo.customElementInstanceStack);
           if (instance || reflectedName !== undefined) {
-            // TODO(kschaaf): Passing `undefined` for element to avoid breaking
-            // type change for now, since committer.element is required, but
-            // won't be during SSR. Directives must currently test
-            // `options.isServerRendering` before interacting with the DOM. To
-            // be discussed.
             const committer = new SSRPropertyCommitter(
               attributeName,
               statics);
             committer.parts.forEach((part, i) => {
               part.setValue(result.values[partIndex + i]);
-              part.commit();
+              part.resolvePendingDirective();
             });
             if (committer.dirty) {
               const value = committer.getValue();
@@ -527,6 +519,7 @@ export function* renderTemplateResult(
                   (instance as any)[propertyName] = value;
                 }
                 if (reflectedName !== undefined) {
+                  // TODO: escape the attribute string
                   yield `${reflectedName}="${value}"`;
                 }
 
@@ -542,8 +535,8 @@ export function* renderTemplateResult(
             attributeName,
             statics);
           part.setValue(result.values[partIndex]);
-          part.commit();
-          if (part.value && part.value !== noChange) {
+          const value = part.resolvePendingDirective();
+          if (value && value !== noChange) {
             yield attributeName;
           }
         } else {
@@ -552,7 +545,7 @@ export function* renderTemplateResult(
             statics);
           committer.parts.forEach((part, i) => {
             part.setValue(result.values[partIndex + i]);
-            part.commit();
+            part.resolvePendingDirective();
           });
           // TODO: escape the attribute string
           const value = committer.getValue();
