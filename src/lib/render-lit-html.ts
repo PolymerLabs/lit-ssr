@@ -23,6 +23,8 @@ import {
   AttributeCommitter,
   BooleanAttributePart,
   PropertyCommitter,
+  AttributePart,
+  PropertyPart,
 } from 'lit-html';
 import {
   marker,
@@ -47,6 +49,7 @@ import {isDirective} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 import {LitElementRenderer} from './lit-element-renderer.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
+import { TemplateFactory } from 'lit-html/lib/template-factory';
 
 declare module 'parse5' {
   interface DefaultTreeElement {
@@ -60,6 +63,87 @@ const templateCache = new Map<
     ops: Array<Op>;
   }
 >();
+
+const directiveSSRDomError = (dom: string) => 
+  `Directives must not access ${dom} during SSR; ` +
+  `directives must only call setValue() during initial render.`
+
+class SSRNodePart extends NodePart {
+  constructor(options: RenderOptions) {
+    super(options);
+    this.isServerRendering = true;
+  }
+  get startNode(): Element {
+    throw new Error(directiveSSRDomError('NodePart:startNode'));
+  }
+  set startNode(_v) {}
+  get endNode(): Element {
+    throw new Error(directiveSSRDomError('NodePart:endNode'));
+  }
+  set endNode(_v) {}
+}
+
+class SSRAttributeCommitter extends AttributeCommitter {
+  constructor(name: string, strings: ReadonlyArray<string>) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  protected _createPart(): SSRAttributePart {
+    return new SSRAttributePart(this);
+  }
+  get element(): Element {
+    throw new Error(directiveSSRDomError('AttributeCommitter:element'));
+  }
+  set element(_v) {}
+}
+
+class SSRAttributePart extends AttributePart {
+  constructor(committer: AttributeCommitter) {
+    super(committer);
+    this.isServerRendering = true;
+  }
+}
+
+class SSRPropertyCommitter extends PropertyCommitter {
+  constructor(name: string, strings: ReadonlyArray<string>) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  protected _createPart(): SSRPropertyPart {
+    return new SSRPropertyPart(this);
+  }
+  get element(): Element {
+    throw new Error(directiveSSRDomError('PropertyCommitter:element'));
+  }
+  set element(_v) {}
+}
+
+class SSRPropertyPart extends PropertyPart {
+  constructor(committer: PropertyCommitter) {
+    super(committer);
+    this.isServerRendering = true;
+  }
+}
+
+class SSRBooleanAttributePart extends BooleanAttributePart {
+  constructor(name: string, strings: readonly string[]) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  get element(): Element {
+    throw new Error(directiveSSRDomError('BooleanAttributePart:element'));
+  }
+  set element(_v) {}
+}
+
+const ssrRenderOptions: RenderOptions = {
+  get templateFactory(): TemplateFactory {
+    throw new Error(directiveSSRDomError('RenderOptions:templateFactory'));
+  },
+  get eventContext(): EventTarget {
+    throw new Error(directiveSSRDomError('RenderOptions:eventContext'));
+  }
+};
 
 /**
  * Operation to output static text
@@ -346,7 +430,7 @@ export function* renderValue(
     }
     value = null;
   } else if (isDirective(value)) {
-    const part = new NodePart({isServerRendering: true} as RenderOptions);
+    const part = new SSRNodePart(ssrRenderOptions);
     part.setValue(value);
     while (isDirective(part.__pendingValue)) {
       const directive = part.__pendingValue;
@@ -430,11 +514,9 @@ export function* renderTemplateResult(
             // won't be during SSR. Directives must currently test
             // `options.isServerRendering` before interacting with the DOM. To
             // be discussed.
-            const committer = new PropertyCommitter(
-              (undefined as any as Element),
+            const committer = new SSRPropertyCommitter(
               attributeName,
-              statics,
-              {isServerRendering: true} as RenderOptions);
+              statics);
             committer.parts.forEach((part, i) => {
               part.setValue(result.values[partIndex + i]);
               part.commit();
@@ -458,27 +540,18 @@ export function* renderTemplateResult(
         } else if (prefix === '?') {
           // Boolean attribute binding
           attributeName = attributeName.substring(1);
-          const part = new BooleanAttributePart(
-            (undefined as any as Element),
+          const part = new SSRBooleanAttributePart(
             attributeName,
-            statics,
-            {isServerRendering: true} as RenderOptions);
+            statics);
           part.setValue(result.values[partIndex]);
           part.commit();
           if (part.value && part.value !== noChange) {
             yield attributeName;
           }
         } else {
-          // TODO(kschaaf): Passing `undefined` for element to avoid breaking
-          // type change for now, since committer.element is required, but
-          // won't be during SSR. Directives must currently test
-          // `options.isServerRendering` before interacting with the DOM. To
-          // be discussed.
-          const committer = new AttributeCommitter(
-            (undefined as any as Element),
+          const committer = new SSRAttributeCommitter(
             attributeName,
-            statics,
-            {isServerRendering: true} as RenderOptions);
+            statics);
           committer.parts.forEach((part, i) => {
             part.setValue(result.values[partIndex + i]);
             part.commit();
