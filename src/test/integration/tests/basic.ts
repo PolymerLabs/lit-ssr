@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {html, noChange, nothing} from 'lit-html';
+import {html, noChange, nothing, directive, Part} from 'lit-html';
 import {repeat} from 'lit-html/directives/repeat.js';
 import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
@@ -2929,4 +2929,242 @@ export const tests: {[name: string] : SSRTest} = {
     stableSelectors: ['div', 'span', 'p'],
   },
 
+  'All part types with at various depths': () => {
+    const handler1 = (e: Event) => (e.target as any).triggered1 = true;
+    const handler2 = (e: Event) => (e.target as any).triggered2 = true;
+    const checkDiv = (assert: Chai.Assert, dom: HTMLElement, id: string, x: any, triggerProp: string) => {
+      const div = dom.querySelector(`#${id}`) as HTMLElement;
+      assert.ok(div, `Div ${id} not found`);
+      div.click();
+      assert.equal((div as any)[triggerProp], true, `Event not triggered for ${id}`);
+      assert.equal((div as any).p, x, `Property not set for ${id}`);
+    };
+    const dirMap: WeakMap<Part, string> = new WeakMap();
+    const dir = directive((value: string) => (part: Part) => {
+      if (dirMap.get(part) !== value) {
+        part.setValue(value ? `[${value}]` : value);
+        dirMap.set(part, value);
+      }
+    });
+    const check = (assert: Chai.Assert, dom: HTMLElement, x: any, triggerProp: string) => {
+      for (let i=0; i<2; i++) {
+        checkDiv(assert, dom, `div${i}`, x, triggerProp);
+        for (let j=0; j<2; j++) {
+          checkDiv(assert, dom, `div${i}-${j}`, x, triggerProp);
+          for (let k=0; k<3; k++) {
+            checkDiv(assert, dom, `div${i}-${j}-${k}`, x, triggerProp);
+          }
+        }
+      }
+    };
+    return {
+      render(x, y, z, h) {
+        return html`
+          <div id="div0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+            ${x}
+            <div id="div0-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+              ${y}
+              <div id="div0-0-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <div id="div0-0-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <span>static</span>
+              <div id="div0-0-2" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div0-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+              ${y}
+              <div id="div0-1-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <div id="div0-1-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <span>static</span>
+              <div id="div0-1-2" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+            </div>
+          </div>
+          <div id="div1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+            ${x}
+            <div id="div1-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+              ${y}
+              <div id="div1-0-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <div id="div1-0-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <span>static</span>
+              <div id="div1-0-2" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div1-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+              ${y}
+              <div id="div1-1-0" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <div id="div1-1-1" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+              <span>static</span>
+              <div id="div1-1-2" a1=${x} a2="[${x}-${y}]" a3="(${dir(x)})" .p=${x} @click=${h} ?b=${x}>
+                ${z}
+              </div>
+            </div>
+          </div>
+        `;
+      },
+      expectations: [
+        {
+          args: ['x', 'y', html`<a>z</a>`, handler1],
+          html: `
+          <div id="div0" a1="x" a2="[x-y]" a3="([x])" b>
+            x
+            <div id="div0-0" a1="x" a2="[x-y]" a3="([x])" b>
+              y
+              <div id="div0-0-0" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <div id="div0-0-1" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <span>static</span>
+              <div id="div0-0-2" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div0-1" a1="x" a2="[x-y]" a3="([x])" b>
+              y
+              <div id="div0-1-0" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <div id="div0-1-1" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <span>static</span>
+              <div id="div0-1-2" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+            </div>
+          </div>
+          <div id="div1" a1="x" a2="[x-y]" a3="([x])" b>
+            x
+            <div id="div1-0" a1="x" a2="[x-y]" a3="([x])" b>
+              y
+              <div id="div1-0-0" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <div id="div1-0-1" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <span>static</span>
+              <div id="div1-0-2" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div1-1" a1="x" a2="[x-y]" a3="([x])" b>
+              y
+              <div id="div1-1-0" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <div id="div1-1-1" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+              <span>static</span>
+              <div id="div1-1-2" a1="x" a2="[x-y]" a3="([x])" b>
+                <a>z</a>
+              </div>
+            </div>
+          </div>`,
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            check(assert, dom, 'x', 'triggered1');
+          }
+        },
+        {
+          args: [0, 1, html`<b>2</b>`, handler2],
+          html: `
+          <div id="div0" a1="0" a2="[0-1]" a3="(0)">
+            0
+            <div id="div0-0" a1="0" a2="[0-1]" a3="(0)">
+              1
+              <div id="div0-0-0" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <div id="div0-0-1" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <span>static</span>
+              <div id="div0-0-2" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div0-1" a1="0" a2="[0-1]" a3="(0)">
+              1
+              <div id="div0-1-0" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <div id="div0-1-1" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <span>static</span>
+              <div id="div0-1-2" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+            </div>
+          </div>
+          <div id="div1" a1="0" a2="[0-1]" a3="(0)">
+            0
+            <div id="div1-0" a1="0" a2="[0-1]" a3="(0)">
+              1
+              <div id="div1-0-0" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <div id="div1-0-1" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <span>static</span>
+              <div id="div1-0-2" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+            </div>
+            <span>static</span>
+            <span>static</span>
+            <div id="div1-1" a1="0" a2="[0-1]" a3="(0)">
+              1
+              <div id="div1-1-0" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <div id="div1-1-1" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+              <span>static</span>
+              <div id="div1-1-2" a1="0" a2="[0-1]" a3="(0)">
+                <b>2</b>
+              </div>
+            </div>
+          </div>`,
+          check(assert: Chai.Assert, dom: HTMLElement) {
+            check(assert, dom, 0, 'triggered2');
+          }
+        },
+      ],
+      stableSelectors: ['div', 'span'],
+    }
+  }
 };
