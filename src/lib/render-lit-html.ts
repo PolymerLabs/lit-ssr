@@ -43,7 +43,7 @@ import {
   isElement,
 } from './util/parse5-utils.js';
 
-import {LitElement, CSSResult} from 'lit-element';
+import {CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {isDirective} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
@@ -385,7 +385,7 @@ const getTemplate = (result: TemplateResult) => {
 };
 
 export type RenderInfo = {
-  customElementInstanceStack: Array<HTMLElement | undefined>;
+  customElementInstanceStack: Array<LitElementRenderer | undefined>;
 };
 
 declare global {
@@ -425,8 +425,7 @@ export function* renderValue(
     const instance = getLast(renderInfo.customElementInstanceStack);
     // TODO, move out of here into something LitElement specific
     if (instance !== undefined) {
-      const templateResult = (instance as any).renderLight();
-      yield* renderValue(templateResult, renderInfo);
+      yield* instance.renderLight(renderInfo);
     }
     value = null;
   } else if (isDirective(value)) {
@@ -493,6 +492,9 @@ export function* renderTemplateResult(
         const statics = op.strings;
         let attributeName = op.name;
         const prefix = attributeName[0];
+        const instance = op.useCustomElementInstance
+          ? getLast(renderInfo.customElementInstanceStack)
+          : undefined;
         if (prefix === '.') {
           const propertyName = name.substring(1);
           // Property should be reflected to attribute
@@ -501,8 +503,9 @@ export function* renderTemplateResult(
             propertyName
           );
           // Property should be set to custom element instance
-          const instance = op.useCustomElementInstance && 
-            getLast(renderInfo.customElementInstanceStack);
+          const instance = op.useCustomElementInstance
+            ? getLast(renderInfo.customElementInstanceStack)
+            : undefined;
           if (instance || reflectedName !== undefined) {
             const committer = new SSRPropertyCommitter(
               attributeName,
@@ -514,9 +517,8 @@ export function* renderTemplateResult(
             if (committer.dirty) {
               const value = committer.getValue();
               if (value !== noChange) {
-                const instance = getLast(renderInfo.customElementInstanceStack);
-                if (instance) {
-                  (instance as any)[propertyName] = value;
+                if (instance !== undefined) {
+                  instance.setProperty(propertyName, value);
                 }
                 if (reflectedName !== undefined) {
                   // TODO: escape the attribute string
@@ -550,6 +552,9 @@ export function* renderTemplateResult(
           // TODO: escape the attribute string
           const value = committer.getValue();
           if (value !== noChange) {
+            if (instance !== undefined) {
+              instance.setAttribute(attributeName, value as string);
+            }
             yield `${attributeName}="${value}"`;
           }
         }
@@ -559,9 +564,11 @@ export function* renderTemplateResult(
       case 'custom-element-open': {
         const ctor = op.ctor;
         // Instantiate the element and stream its render() result
-        let instance: HTMLElement | undefined = undefined;
+        let instance = undefined;
         try {
-          instance = new ctor();
+          const element = new ctor();
+          (element as any).tagName = op.tagName;
+          instance = new LitElementRenderer(element);
         } catch (e) {
           console.error('Exception in custom element constructor', e);
         }
@@ -571,8 +578,7 @@ export function* renderTemplateResult(
       case 'custom-element-render': {
         const instance = getLast(renderInfo.customElementInstanceStack);
         if (instance !== undefined) {
-          const renderer = new LitElementRenderer();
-          yield* renderer.renderElement(instance as LitElement, renderInfo);
+          yield* instance.renderElement();
         }
         break;
       }
