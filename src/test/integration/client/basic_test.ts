@@ -48,7 +48,7 @@ const assert = chai.assert;
  * html: {
  *   root: '<my-el></my-el>',
  *   'my-el': {
- *     root: '<span></span>'
+ *     root: '<my-el2></my-el2>'
  *     'my-el2': '<input>'
  *   },
  * 
