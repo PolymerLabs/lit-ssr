@@ -1444,7 +1444,7 @@ export const tests: {[name: string] : SSRTest} = {
   'PropertyPart accepts noChange (reflected)': {
     // TODO: Right now, SSR just reflects the raw value noChange, so it gets
     // '[object Object]' in the HTML, but when hydration runes, the committer
-    // sets 'undefined' (which gets reflectd), so there's no way to write a
+    // sets 'undefined' (which gets reflected), so there's no way to write a
     // correct test; we should either fix the client-side to not set
     // `undefined`, or else just serialize 'undefined' for noChange on the server
     skip: true,
@@ -3278,6 +3278,7 @@ export const tests: {[name: string] : SSRTest} = {
       // TODO: lit-element-renderer does not yet support reflected properties;
       // should the renderer call into `addPropertiesForElement`? The first time
       // a renderer is created for a given element type?
+      // https://github.com/PolymerLabs/lit-ssr/issues/61
       skip: true,
       registerElements() {
         class LEReflectedBinding extends LitElement {
