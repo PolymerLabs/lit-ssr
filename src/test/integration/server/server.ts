@@ -41,6 +41,9 @@ export const startServer = async (port = 9090) => {
     const testDescOrFn = module.tests[testName] as SSRTest;
     const test = (typeof testDescOrFn === 'function') ? testDescOrFn() : testDescOrFn;
     const {render} = module;
+    if (test.registerElements) {
+      await test.registerElements();
+    }
     // For debugging:
     if (false) {
       const result = render(test.render(...test.expectations[0].args));

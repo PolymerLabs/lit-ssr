@@ -12,7 +12,7 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {html, noChange, nothing, directive, Part} from 'lit-html';
+import {html, noChange, nothing, directive, Part, TemplateResult} from 'lit-html';
 import {repeat} from 'lit-html/directives/repeat.js';
 import {guard} from 'lit-html/directives/guard.js';
 import {cache} from 'lit-html/directives/cache.js';
@@ -25,6 +25,8 @@ import {TestAsyncIterable} from 'lit-html/test/lib/test-async-iterable.js';
 import {ifDefined} from 'lit-html/directives/if-defined.js';
 import {live} from 'lit-html/directives/live.js';
 
+import { LitElement, property } from 'lit-element';
+import {renderLight} from 'lit-element/lib/render-light.js';
 
 import { SSRTest } from './ssr-test';
 
@@ -548,13 +550,12 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, 'foo'],
           html: '<div>foo</div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve('promise');
             await promise;
           },
-        },
-        {
           args: [promise, 'foo'],
           html: '<div>promise</div>',
         },
@@ -576,22 +577,20 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<div></div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve1('promise1');
             await promise1;
           },
-        },
-        {
           args: [promise2, promise1],
           html: '<div>promise1</div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve2('promise2');
             await promise2;
           },
-        },
-        {
           args: [promise2, promise1],
           html: '<div>promise2</div>',
         },
@@ -610,20 +609,18 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [iterable],
           html: '<div></div>',
-          check: async () => {
-            // Setup the next render
-            await iterable.push('a');
-          }
         },
         {
+          async setup() {
+            await iterable.push('a');
+          },
           args: [iterable],
           html: '<div>a</div>',
-          check: async () => {
-            // Setup the next render
-            await iterable.push('b');
-          }
         },
         {
+          async setup() {
+            await iterable.push('b');
+          },
           args: [iterable],
           html: '<div>\n  a\n  b\n</div>',
         },
@@ -642,20 +639,18 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [iterable],
           html: '<div></div>',
-          check: async () => {
-            // Setup the next render
-            await iterable.push('a');
-          }
         },
         {
+          async setup() {
+            await iterable.push('a');
+          },
           args: [iterable],
           html: '<div>a</div>',
-          check: async () => {
-            // Setup the next render
-            await iterable.push('b');
-          }
         },
         {
+          async setup() {
+            await iterable.push('b');
+          },
           args: [iterable],
           html: '<div>b</div>',
         },
@@ -1004,13 +999,12 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, 'foo'],
           html: '<div attr="foo"></div>',
-          async check() {
-            // Setup next render
-            resolve('promise');
-            await promise;
-          }
         },
         {
+          async setup() {
+            resolve('promise');
+            await promise;
+          },
           args: [promise, 'foo'],
           html: '<div attr="promise"></div>',
         },
@@ -1035,22 +1029,20 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<div></div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve1('promise1');
             await promise1;
           },
-        },
-        {
           args: [promise2, promise1],
           html: '<div attr="promise1"></div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve2('promise2');
             await promise2;
           },
-        },
-        {
           args: [promise2, promise1],
           html: '<div attr="promise2"></div>',
         },
@@ -1452,7 +1444,7 @@ export const tests: {[name: string] : SSRTest} = {
   'PropertyPart accepts noChange (reflected)': {
     // TODO: Right now, SSR just reflects the raw value noChange, so it gets
     // '[object Object]' in the HTML, but when hydration runes, the committer
-    // sets 'undefined' (which gets reflectd), so there's no way to write a
+    // sets 'undefined' (which gets reflected), so there's no way to write a
     // correct test; we should either fix the client-side to not set
     // `undefined`, or else just serialize 'undefined' for noChange on the server
     skip: true,
@@ -1940,14 +1932,15 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, 'foo'],
           html: '<div></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             assert.strictEqual((dom.querySelector('div') as any).prop, 'foo');
-            // Setup next render
-            resolve('promise');
-            await promise;
           }
         },
         {
+          async setup() {
+            resolve('promise');
+            await promise;
+          },
           args: [promise, 'foo'],
           html: '<div></div>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -1973,15 +1966,16 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, 'foo'],
           html: '<div class="foo"></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             // Note className coerces to string
             assert.strictEqual(dom.querySelector('div')!.className, 'foo');
-            // Setup next render
-            resolve('promise');
-            await promise;
           }
         },
         {
+          async setup() {
+            resolve('promise');
+            await promise;
+          },
           args: [promise, 'foo'],
           html: '<div class="promise"></div>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -2014,24 +2008,26 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<div></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             assert.notProperty((dom.querySelector('div') as any), 'prop');
-            // Setup next render
+          }
+        },
+        {
+          async setup() {
             resolve1('promise1');
             await promise1;
-          }
-        },
-        {
+          },
           args: [promise2, promise1],
           html: '<div></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             assert.strictEqual((dom.querySelector('div') as any).prop, 'promise1');
-            // Setup next render
-            resolve2('promise2');
-            await promise2;
           }
         },
         {
+          async setup() {
+            resolve2('promise2');
+            await promise2;
+          },
           args: [promise2, promise1],
           html: '<div></div>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -2056,26 +2052,28 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<div></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             // Note className coerces to string
             assert.strictEqual(dom.querySelector('div')!.className, '');
-            // Setup next render
+          }
+        },
+        {
+          async setup() {
             resolve1('promise1');
             await promise1;
-          }
-        },
-        {
+          },
           args: [promise2, promise1],
           html: '<div class="promise1"></div>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             // Note className coerces to string
             assert.strictEqual(dom.querySelector('div')!.className, 'promise1');
-            // Setup next render
-            resolve2('promise2');
-            await promise2;
           }
         },
         {
+          async setup() {
+            resolve2('promise2');
+            await promise2;
+          },
           args: [promise2, promise1],
           html: '<div class="promise2"></div>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -2410,16 +2408,17 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, listener1],
           html: '<button>X</button>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             const button = dom.querySelector('button')!;
             button.click();
             assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during first render');
-            // Setup next render
-            resolve(listener2);
-            await promise;
           }
         },
         {
+          async setup() {
+            resolve(listener2);
+            await promise;
+          },
           args: [promise, listener1],
           html: '<button>X</button>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -2448,29 +2447,31 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<button>X</button>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             assert.notProperty((dom.querySelector('button') as any), 'prop');
             const button = dom.querySelector('button')!;
             button.click();
             assert.notProperty(button, '__wasClicked1', 'was clicked during first render');
-            // Setup next render
-            resolve1(listener1);
-            await promise1;
           }
         },
         {
+          async setup() {
+            resolve1(listener1);
+            await promise1;
+          },
           args: [promise2, promise1],
           html: '<button>X</button>',
-          async check(assert: Chai.Assert, dom: HTMLElement) {
+          check(assert: Chai.Assert, dom: HTMLElement) {
             const button = dom.querySelector('button')!;
             button.click();
             assert.strictEqual((button as any).__wasClicked1, true, 'not clicked during second render');
-            // Setup next render
-            resolve2(listener2);
-            await promise2;
           }
         },
         {
+          async setup() {
+            resolve2(listener2);
+            await promise2;
+          },
           args: [promise2, promise1],
           html: '<button>X</button>',
           check(assert: Chai.Assert, dom: HTMLElement) {
@@ -2768,13 +2769,12 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise, true],
           html: '<div hidden></div>',
-          async check() {
-            // Setup next render
-            resolve(false);
-            await promise;
-          }
         },
         {
+          async setup() {
+            resolve(false);
+            await promise;
+          },
           args: [promise, true],
           html: '<div></div>',
         },
@@ -2799,22 +2799,20 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: [promise2, promise1],
           html: '<div></div>',
-          async check() {
-            // Setup next render
+        },
+        {
+          async setup() {
             resolve1(true);
             await promise1;
-          }
-        },
-        {
+          },
           args: [promise2, promise1],
           html: '<div hidden></div>',
-          async check() {
-            // Setup next render
-            resolve2(false);
-            await promise2;
-          }
         },
         {
+          async setup() {
+            resolve2(false);
+            await promise2;
+          },
           args: [promise2, promise1],
           html: '<div></div>',
         },
@@ -3166,5 +3164,297 @@ export const tests: {[name: string] : SSRTest} = {
       ],
       stableSelectors: ['div', 'span'],
     }
-  }
+  },
+
+  /******************************************************
+   * LitElement tests
+   ******************************************************/
+
+  'LitElement: Basic': () => {
+    return {
+      registerElements() {
+        customElements.define('le-basic', class extends LitElement {
+          render() {
+            return html` <div>[le-basic: <slot></slot>]</div>`;
+          }
+        });
+      },
+      render(x: string) {
+        return html`<le-basic>${x}</le-basic>`;
+      },
+      expectations: [
+        {
+          args: ['x'],
+          html: {
+            root: `<le-basic>x</le-basic>`,
+            'le-basic': `<div>[le-basic: <slot></slot>]</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-basic'],
+    };
+  },
+
+  'LitElement: Nested': () => {
+    return {
+      registerElements() {
+        customElements.define('le-nested1', class extends LitElement {
+          render() {
+            return html` <div>[le-nested1: <le-nested2><slot></slot></le-nested2>]</div>`;
+          }
+        });
+        customElements.define('le-nested2', class extends LitElement {
+          render() {
+            return html` <div>[le-nested2: <slot></slot>]</div>`;
+          }
+        });
+      },
+      render(x: string) {
+        return html`<le-nested1>${x}</le-nested1>`;
+      },
+      expectations: [
+        {
+          args: ['x'],
+          html: {
+            root: `<le-nested1>x</le-nested1>`,
+            'le-nested1': {
+              root: `<div>[le-nested1: <le-nested2><slot></slot></le-nested2>]</div>`,
+              'le-nested2': `<div>[le-nested2: <slot></slot>]</div>`
+            }
+          },
+        },
+      ],
+      stableSelectors: ['le-nested1'],
+    };
+  },
+
+  'LitElement: Property binding': () => {
+    return {
+      registerElements() {
+        class LEPropBinding extends LitElement {
+          @property()
+          prop = 'default';
+          render() {
+            return html` <div>[${this.prop}]</div>`;
+          }
+        }
+        customElements.define('le-prop-binding', LEPropBinding);
+      },
+      render(prop: any) {
+        return html`<le-prop-binding .prop=${prop}></le-prop-binding>`;
+      },
+      expectations: [
+        {
+          args: ['boundProp1'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-prop-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp1');
+          },
+          html: {
+            root: `<le-prop-binding></le-prop-binding>`,
+            'le-prop-binding': `<div>\n  [\n  boundProp1\n  ]\n</div>`
+          },
+        },
+        {
+          args: ['boundProp2'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-prop-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp2');
+          },
+          html: {
+            root: `<le-prop-binding></le-prop-binding>`,
+            'le-prop-binding': `<div>\n  [\n  boundProp2\n  ]\n</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-prop-binding'],
+    };
+  },
+
+  'LitElement: Reflected property binding': () => {
+    return {
+      // TODO: lit-element-renderer does not yet support reflected properties;
+      // should the renderer call into `addPropertiesForElement`? The first time
+      // a renderer is created for a given element type?
+      // https://github.com/PolymerLabs/lit-ssr/issues/61
+      skip: true,
+      registerElements() {
+        class LEReflectedBinding extends LitElement {
+          @property({reflect: true})
+          prop = 'default';
+          render() {
+            return html` <div>[${this.prop}]</div>`;
+          }
+        }
+        customElements.define('le-reflected-binding', LEReflectedBinding);
+      },
+      render(prop: any) {
+        return html`<le-reflected-binding .prop=${prop}></le-reflected-binding>`;
+      },
+      expectations: [
+        {
+          args: ['boundProp1'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-reflected-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp1');
+          },
+          html: {
+            root: `<le-reflected-binding prop="boundProp1"></le-reflected-binding>`,
+            'le-reflected-binding': `<div>\n  [\n  boundProp1\n  ]\n</div>`
+          },
+        },
+        {
+          args: ['boundProp2'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-prop-binding')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp2');
+          },
+          html: {
+            root: `<le-reflected-binding prop="boundProp2"></le-reflected-binding>`,
+            'le-reflected-binding': `<div>\n  [\n  boundProp2\n  ]\n</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-reflected-binding'],
+    };
+  },
+
+  'LitElement: Attribute binding': () => {
+    return {
+      registerElements() {
+        class LEAttrBinding extends LitElement {
+          @property()
+          prop = 'default';
+          render() {
+            return html` <div>[${this.prop}]</div>`;
+          }
+        }
+        customElements.define('le-attr-binding', LEAttrBinding);
+      },
+      render(prop: any) {
+        return html`<le-attr-binding prop=${prop}></le-attr-binding>`;
+      },
+      expectations: [
+        {
+          args: ['boundProp1'],
+          async check(_assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-attr-binding')! as LitElement;
+            await el.updateComplete;
+          },
+          html: {
+            root: `<le-attr-binding prop="boundProp1"></le-attr-binding>`,
+            'le-attr-binding': `<div>\n  [\n  boundProp1\n  ]\n</div>`
+          },
+        },
+        {
+          args: ['boundProp2'],
+          async check(_assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-attr-binding')! as LitElement;
+            await el.updateComplete;
+          },
+          html: {
+            root: `<le-attr-binding prop="boundProp2"></le-attr-binding>`,
+            'le-attr-binding': `<div>\n  [\n  boundProp2\n  ]\n</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-attr-binding'],
+    };
+  },
+
+  'LitElement: TemplateResult->Node binding': () => {
+    return {
+      registerElements() {
+        class LENodeBinding extends LitElement {
+          @property()
+          template: string | TemplateResult = 'default';
+          render() {
+            return html` <div>${this.template}</div>`;
+          }
+        }
+        customElements.define('le-node-binding', LENodeBinding);
+      },
+      render(template: (s: string) => TemplateResult) {
+        return html`<le-node-binding .template=${template('shadow')}>${template('light')}</le-node-binding>`;
+      },
+      expectations: [
+        {
+          args: [(s: string) => html`[template1: ${s}]`],
+          async check(_assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-node-binding')! as LitElement;
+            await el.updateComplete;
+          },
+          html: {
+            root: `<le-node-binding>\n  [template1:\n  light\n  ]\n</le-node-binding>`,
+            'le-node-binding': `<div>\n  [template1:\n  shadow\n  ]\n</div>`
+          },
+        },
+        {
+          args: [(s: string) => html`[template2: ${s}]`],
+          async check(_assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-node-binding')! as LitElement;
+            await el.updateComplete;
+          },
+          html: {
+            root: `<le-node-binding>\n  [template2:\n  light\n  ]\n</le-node-binding>`,
+            'le-node-binding': `<div>\n  [template2:\n  shadow\n  ]\n</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-node-binding'],
+    };
+  },
+
+  'LitElement: renderLight': () => {
+    return {
+      registerElements() {
+        class LERenderLight extends LitElement {
+          @property()
+          prop = 'default';
+          render() {
+            return html` <div>[shadow:${this.prop}<slot></slot>]</div>`;
+          }
+          renderLight() {
+            return html` <div>[light:${this.prop}]</div>`;
+          }
+        }
+        customElements.define('le-render-light', LERenderLight);
+      },
+      render(prop: any) {
+        return html`<le-render-light .prop=${prop}>${renderLight()}</le-render-light>`;
+      },
+      expectations: [
+        {
+          args: ['boundProp1'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-render-light')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp1');
+          },
+          html: {
+            root: `<le-render-light>\n  <div>\n    [light:\n    boundProp1\n    ]\n  </div>\n</le-render-light>`,
+            'le-render-light': `<div>\n  [shadow:\n  boundProp1\n  <slot></slot>\n  ]\n</div>`
+          },
+        },
+        {
+          args: ['boundProp2'],
+          async check(assert: Chai.Assert, dom: HTMLElement) {
+            const el = dom.querySelector('le-render-light')! as LitElement;
+            await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp2');
+          },
+          html: {
+            root: `<le-render-light>\n  <div>\n    [light:\n    boundProp2\n    ]\n  </div>\n</le-render-light>`,
+            'le-render-light': `<div>\n  [shadow:\n  boundProp2\n  <slot></slot>\n  ]\n</div>`
+          },
+        },
+      ],
+      stableSelectors: ['le-render-light'],
+    };
+  },
+
 };
