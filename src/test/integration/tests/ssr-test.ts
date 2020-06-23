@@ -13,7 +13,10 @@
  */
 
 import { TemplateResult } from 'lit-html';
-export interface SSRTest {
+
+export type SSRExpectedHTML = string | {[name: string] : SSRExpectedHTML | SSRExpectedHTML[]};
+
+export interface SSRTestDescription {
   render(...args: any): TemplateResult;
   expectations: Array<{
 
@@ -27,9 +30,11 @@ export interface SSRTest {
      *
      * Does not need to contain lit-html marker comments.
      */
-    html: string;
+    html: SSRExpectedHTML;
 
-    check?(assert: Chai.Assert, dom: HTMLElement): void;
+    setup?(assert: Chai.Assert, dom: HTMLElement): void | Promise<unknown>
+    check?(assert: Chai.Assert, dom: HTMLElement): void | Promise<unknown>;
+
   }>;
   /**
    * A list of selectors of elements that should no change between renders.
@@ -37,6 +42,13 @@ export interface SSRTest {
    */
   stableSelectors: Array<string>;
   expectMutationsOnFirstRender?: boolean,
+  expectMutationsDuringHydration?: boolean,
+  expectMutationsDuringUpgrade?: boolean,
   skip?: boolean;
   only?: boolean;
+  registerElements?() : void | Promise<unknown>;
 }
+
+export type SSRTestFactory = () => SSRTestDescription;
+
+export type SSRTest = SSRTestDescription | SSRTestFactory;

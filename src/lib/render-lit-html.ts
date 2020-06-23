@@ -14,7 +14,18 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {TemplateResult, nothing, noChange} from 'lit-html';
+import {
+  TemplateResult,
+  nothing,
+  noChange,
+  NodePart,
+  RenderOptions,
+  AttributeCommitter,
+  BooleanAttributePart,
+  PropertyCommitter,
+  AttributePart,
+  PropertyPart,
+} from 'lit-html';
 import {
   marker,
   markerRegex,
@@ -34,14 +45,11 @@ import {
 
 import {CSSResult} from 'lit-element';
 import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
-import {isRepeatDirective, RepeatPreRenderer} from './directives/repeat.js';
-import {
-  isClassMapDirective,
-  ClassMapPreRenderer,
-} from './directives/class-map.js';
+import {isDirective} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
 import {LitElementRenderer} from './lit-element-renderer.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
+import { TemplateFactory } from 'lit-html/lib/template-factory';
 
 declare module 'parse5' {
   interface DefaultTreeElement {
@@ -55,6 +63,87 @@ const templateCache = new Map<
     ops: Array<Op>;
   }
 >();
+
+const directiveSSRError = (dom: string) => 
+  `Directives must not access ${dom} during SSR; ` +
+  `directives must only call setValue() during initial render.`
+
+class SSRNodePart extends NodePart {
+  constructor(options: RenderOptions) {
+    super(options);
+    this.isServerRendering = true;
+  }
+  get startNode(): Element {
+    throw new Error(directiveSSRError('NodePart:startNode'));
+  }
+  set startNode(_v) {}
+  get endNode(): Element {
+    throw new Error(directiveSSRError('NodePart:endNode'));
+  }
+  set endNode(_v) {}
+}
+
+class SSRAttributeCommitter extends AttributeCommitter {
+  constructor(name: string, strings: ReadonlyArray<string>) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  protected _createPart(): SSRAttributePart {
+    return new SSRAttributePart(this);
+  }
+  get element(): Element {
+    throw new Error(directiveSSRError('AttributeCommitter:element'));
+  }
+  set element(_v) {}
+}
+
+class SSRAttributePart extends AttributePart {
+  constructor(committer: AttributeCommitter) {
+    super(committer);
+    this.isServerRendering = true;
+  }
+}
+
+class SSRPropertyCommitter extends PropertyCommitter {
+  constructor(name: string, strings: ReadonlyArray<string>) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  protected _createPart(): SSRPropertyPart {
+    return new SSRPropertyPart(this);
+  }
+  get element(): Element {
+    throw new Error(directiveSSRError('PropertyCommitter:element'));
+  }
+  set element(_v) {}
+}
+
+class SSRPropertyPart extends PropertyPart {
+  constructor(committer: PropertyCommitter) {
+    super(committer);
+    this.isServerRendering = true;
+  }
+}
+
+class SSRBooleanAttributePart extends BooleanAttributePart {
+  constructor(name: string, strings: readonly string[]) {
+    super(undefined as any as Element, name, strings);
+    this.isServerRendering = true;
+  }
+  get element(): Element {
+    throw new Error(directiveSSRError('BooleanAttributePart:element'));
+  }
+  set element(_v) {}
+}
+
+const ssrRenderOptions: RenderOptions = {
+  get templateFactory(): TemplateFactory {
+    throw new Error(directiveSSRError('RenderOptions:templateFactory'));
+  },
+  get eventContext(): EventTarget {
+    throw new Error(directiveSSRError('RenderOptions:eventContext'));
+  }
+};
 
 /**
  * Operation to output static text
@@ -330,23 +419,26 @@ export function* renderValue(
   value: unknown,
   renderInfo: RenderInfo
 ): IterableIterator<string> {
+  if (isRenderLightDirective(value)) {
+    // If a value was produced with renderLight(), we want to call and render
+    // the renderLight() method.
+    const instance = getLast(renderInfo.customElementInstanceStack);
+    // TODO, move out of here into something LitElement specific
+    if (instance !== undefined) {
+      yield* instance.renderLight(renderInfo);
+    }
+    value = null;
+  } else if (isDirective(value)) {
+    const part = new SSRNodePart(ssrRenderOptions);
+    part.setValue(value);
+    value = part.resolvePendingDirective();
+  }
   if (value instanceof TemplateResult) {
     yield `<!--lit-part ${value.digest}-->`;
     yield* renderTemplateResult(value, renderInfo);
   } else {
     yield `<!--lit-part-->`;
-    if (value === undefined || value === null) {
-      // do nothing
-    } else if (isRepeatDirective(value)) {
-      yield* (value as RepeatPreRenderer)(renderInfo);
-    } else if (isRenderLightDirective(value)) {
-      // If a value was produced with renderLight(), we want to call and render
-      // the renderLight() method.
-      const instance = getLast(renderInfo.customElementInstanceStack);
-      if (instance !== undefined) {
-        yield* instance.renderLight(renderInfo);
-      }
-    } else if (value === nothing || value === noChange) {
+    if (value === undefined || value === null || value === nothing || value === noChange) {
       // yield nothing
     } else if (Array.isArray(value)) {
       for (const item of value) {
@@ -405,45 +497,66 @@ export function* renderTemplateResult(
           : undefined;
         if (prefix === '.') {
           const propertyName = name.substring(1);
-          const value = result.values[partIndex];
-          if (instance !== undefined) {
-            instance.setProperty(propertyName, value);
-          }
           // Property should be reflected to attribute
           const reflectedName = reflectedAttributeName(
             op.tagName,
             propertyName
           );
-          if (reflectedName !== undefined) {
-            yield `${reflectedName}="${value}"`;
+          // Property should be set to custom element instance
+          const instance = op.useCustomElementInstance
+            ? getLast(renderInfo.customElementInstanceStack)
+            : undefined;
+          if (instance || reflectedName !== undefined) {
+            const committer = new SSRPropertyCommitter(
+              attributeName,
+              statics);
+            committer.parts.forEach((part, i) => {
+              part.setValue(result.values[partIndex + i]);
+              part.resolvePendingDirective();
+            });
+            if (committer.dirty) {
+              const value = committer.getValue();
+              if (value !== noChange) {
+                if (instance !== undefined) {
+                  instance.setProperty(propertyName, value);
+                }
+                if (reflectedName !== undefined) {
+                  // TODO: escape the attribute string
+                  yield `${reflectedName}="${value}"`;
+                }
+
+              }
+            }
           }
         } else if (prefix === '@') {
           // Event binding, do nothing with values
         } else if (prefix === '?') {
           // Boolean attribute binding
           attributeName = attributeName.substring(1);
-          if (statics.length !== 2 || statics[0] !== '' || statics[1] !== '') {
-            throw new Error(
-              'Boolean attributes can only contain a single expression'
-            );
-          }
-          const value = result.values[partIndex];
-          if (value) {
-            if (instance !== undefined) {
-              instance.setAttribute(attributeName, value as string);
-            }
+          const part = new SSRBooleanAttributePart(
+            attributeName,
+            statics);
+          part.setValue(result.values[partIndex]);
+          const value = part.resolvePendingDirective();
+          if (value && value !== noChange) {
             yield attributeName;
           }
         } else {
-          const attributeString = `${attributeName}="${getAttrValue(
-            statics,
-            result,
-            partIndex
-          )}"`;
-          if (instance !== undefined) {
-            instance.setAttribute(attributeName, attributeString as string);
+          const committer = new SSRAttributeCommitter(
+            attributeName,
+            statics);
+          committer.parts.forEach((part, i) => {
+            part.setValue(result.values[partIndex + i]);
+            part.resolvePendingDirective();
+          });
+          // TODO: escape the attribute string
+          const value = committer.getValue();
+          if (value !== noChange) {
+            if (instance !== undefined) {
+              instance.setAttribute(attributeName, value as string);
+            }
+            yield `${attributeName}="${value}"`;
           }
-          yield attributeString;
         }
         partIndex += statics.length - 1;
         break;
@@ -483,23 +596,5 @@ export function* renderTemplateResult(
     );
   }
 }
-
-const getAttrValue = (
-  strings: ReadonlyArray<string>,
-  result: TemplateResult,
-  startIndex: number
-) => {
-  let s = strings[0];
-  for (let i = 0; i < strings.length - 1; i++) {
-    const value = result.values[startIndex + i];
-    if (isClassMapDirective(value)) {
-      s += (value as ClassMapPreRenderer)();
-    } else {
-      s += String(value);
-    }
-    s += strings[i + 1];
-  }
-  return s;
-};
 
 const getLast = <T>(a: Array<T>) => a[a.length - 1];

@@ -24,7 +24,7 @@ const options = [
     name: 'debug',
     type: Boolean,
     alias: 'd',
-    description: 'Opens a Chrome window and runs karma in debug mode',
+    description: 'Runs karma in debug mode without opening a webdriver-controlled browser',
     defaultValue: false
   },
 ];
@@ -62,8 +62,9 @@ const config: karma.ConfigOptions = deepmerge(createDefaultConfig({}), {
 } as any);
 
 if (args.debug) {
-  config.browsers = ['Chrome'];
+  config.browsers = [];
   config.singleRun = false;
+  (config as any).client.mocha.timeout = 100000000;
 }
 
 (async () => {
