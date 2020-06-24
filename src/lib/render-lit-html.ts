@@ -57,12 +57,12 @@ declare module 'parse5' {
   }
 }
 
-const templateCache = new Map<
-  TemplateStringsArray,
-  {
-    ops: Array<Op>;
-  }
->();
+type Template = {
+  ops: Array<Op>;
+  digest: string;
+};
+
+const templateCache = new Map<TemplateStringsArray, Template>();
 
 const directiveSSRError = (dom: string) => 
   `Directives must not access ${dom} during SSR; ` +
@@ -379,7 +379,7 @@ const getTemplate = (result: TemplateResult) => {
     },
   });
   flushTo();
-  const t = {ops};
+  const t = {ops, digest: result.digest};
   templateCache.set(result.strings, t);
   return t;
 };
@@ -434,8 +434,9 @@ export function* renderValue(
     value = part.resolvePendingDirective();
   }
   if (value instanceof TemplateResult) {
-    yield `<!--lit-part ${value.digest}-->`;
-    yield* renderTemplateResult(value, renderInfo);
+    const template = getTemplate(value);
+    yield `<!--lit-part ${template.digest}-->`;
+    yield* renderTemplateResult(value, template, renderInfo);
   } else {
     yield `<!--lit-part-->`;
     if (value === undefined || value === null || value === nothing || value === noChange) {
@@ -454,6 +455,7 @@ export function* renderValue(
 
 export function* renderTemplateResult(
   result: TemplateResult,
+  template: Template,
   renderInfo: RenderInfo
 ): IterableIterator<string> {
   // In order to render a TemplateResult we have to handle and stream out
@@ -471,7 +473,7 @@ export function* renderTemplateResult(
   // elements. For each we will record the offset of the node, and output the
   // previous span of HTML.
 
-  const {ops} = getTemplate(result);
+  const {ops} = template;
 
   /* The next value in result.values to render */
   let partIndex = 0;
