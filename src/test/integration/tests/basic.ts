@@ -897,12 +897,12 @@ export const tests: {[name: string] : SSRTest} = {
     },
     expectations: [
       {
-        args: [{background: 'red', paddingTop: '10px', '--my-prop': 'green'}],
-        html: '<div style="background: red; padding-top: 10px; --my-prop:green;"></div>'
+        args: [{background: 'red', paddingTop: '10px', '--my-prop': 'green', webkitAppearance: 'none'}],
+        html: '<div style="background: red; padding-top: 10px; --my-prop:green; -webkit-appearance: none;"></div>'
       },
       {
-        args: [{paddingTop: '20px', '--my-prop': 'gray', backgroundColor: 'white'}],
-        html: '<div style="padding-top: 20px; --my-prop:gray; background-color: white;"></div>'
+        args: [{paddingTop: '20px', '--my-prop': 'gray', backgroundColor: 'white', webkitAppearance: 'inherit'}],
+        html: '<div style="padding-top: 20px; --my-prop:gray; -webkit-appearance: inherit; background-color: white;"></div>'
       }
     ],
     // styleMap does not dirty check individual properties before setting,
