@@ -58,7 +58,7 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
       return new URL(specifier, referrer);
     }
 
-    if (specifier.startsWith('lit-html')) {
+    if (specifier.startsWith('lit-html') || specifier.startsWith('lit-element')) {
       // Override where we resolve lit-html from so that we always resolve to
       // a single version of lit-html.
       referrer = import.meta.url;
