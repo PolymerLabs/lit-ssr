@@ -90,6 +90,8 @@ const initializeImportMeta = (meta: any, module: vm.SourceTextModule) => {
   meta.url = module.identifier;
 };
 
+let importId = 0;
+
 /**
  * Imports a module given by `path` into a new VM context with `sandbox` as the
  * global object.
@@ -142,7 +144,7 @@ export const importModule = async (
         initializeImportMeta,
         importModuleDynamically,
         context,
-        identifier: moduleURL.toString(),
+        identifier: moduleURL.toString() + `:${importId++}`,
       });
     })();
     moduleCache.set(modulePath, modulePromise);
