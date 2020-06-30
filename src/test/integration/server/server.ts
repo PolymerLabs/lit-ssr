@@ -17,15 +17,12 @@ import Koa from 'koa';
 import Router from '@koa/router';
 
 import {importModule} from '../../../lib/import-module.js';
-import {window} from '../../../lib/dom-shim.js';
+import {getWindow} from '../../../lib/dom-shim.js';
 import {IterableReader} from '../../../lib/util/iterator-readable.js';
 
 import * as testModule from '../tests/basic-ssr.js';
 import { SSRTest } from "../tests/ssr-test";
 
-// We need to give window a require to load CJS modules used by the SSR
-// implementation. If we had only JS module dependencies, we wouldn't need this.
-(window as any).require = createRequire(import.meta.url);
 
 export const startServer = async (port = 9090) => {
   const app = new Koa();
@@ -35,6 +32,11 @@ export const startServer = async (port = 9090) => {
     const suiteName = context.params.suite;
     const testName = context.params.test;
 
+    const window = getWindow({
+      // We need to give window a require to load CJS modules used by the SSR
+      // implementation. If we had only JS module dependencies, we wouldn't need this.
+      require: createRequire(import.meta.url)
+    });
     const {namespace} = await importModule(`../tests/${suiteName}-ssr.js`, import.meta.url, window);
     const module = namespace as typeof testModule;
 

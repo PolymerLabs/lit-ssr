@@ -14,14 +14,12 @@
 
 import {createRequire} from 'module';
 import {importModule} from '../../lib/import-module.js';
-import {window} from '../../lib/dom-shim.js';
+import {getWindow} from '../../lib/dom-shim.js';
 import tape, {Test} from 'tape';
 import tapePromiseLib from 'tape-promise';
 
 const tapePromise = (tapePromiseLib as any).default as typeof tapePromiseLib;
 const test = tapePromise(tape);
-
-(window as any).require = createRequire(import.meta.url);
 
 /**
  * Promise for importing the "app module". This is a module that implements the
@@ -31,7 +29,7 @@ const test = tapePromise(tape);
 const appModuleImport = importModule(
   '../test-files/render-test-module.js',
   import.meta.url,
-  window
+  getWindow({require: createRequire(import.meta.url)})
 );
 
 /* Real Tests */
