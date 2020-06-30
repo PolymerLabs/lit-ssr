@@ -24,6 +24,8 @@ import {asyncReplace} from 'lit-html/directives/async-replace.js';
 import {TestAsyncIterable} from 'lit-html/test/lib/test-async-iterable.js';
 import {ifDefined} from 'lit-html/directives/if-defined.js';
 import {live} from 'lit-html/directives/live.js';
+import {unsafeHTML} from 'lit-html/directives/unsafe-html.js';
+import {unsafeSVG} from 'lit-html/directives/unsafe-svg.js';
 
 import { LitElement, property } from 'lit-element';
 import {renderLight} from 'lit-element/lib/render-light.js';
@@ -688,6 +690,40 @@ export const tests: {[name: string] : SSRTest} = {
       {
         args: [undefined],
         html: '<div></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: unsafeHTML': {
+    render(v) {
+      return html`<div>${unsafeHTML(v)}</div>`
+    },
+    expectations: [
+      {
+        args: ['<span foo="bar"></span>'],
+        html: '<div><span foo="bar"></span></div>',
+      },
+      {
+        args: ['<p bar="foo"></p>'],
+        html: '<div><p bar="foo"></p></div>',
+      },
+    ],
+    stableSelectors: ['div'],
+  },
+
+  'NodePart accepts directive: unsafeSVG': {
+    render(v) {
+      return html`<svg>${unsafeSVG(v)}</svg>`
+    },
+    expectations: [
+      {
+        args: ['<circle cx="50" cy="50" r="40" />'],
+        html: '<svg><circle cx="50" cy="50" r="40"></circle></svg>',
+      },
+      {
+        args: ['<ellipse cx="100" cy="50" rx="100" ry="50" />'],
+        html: '<svg><ellipse cx="100" cy="50" rx="100" ry="50"></ellipse></svg>',
       },
     ],
     stableSelectors: ['div'],

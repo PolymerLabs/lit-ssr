@@ -7,18 +7,25 @@ declare global {
 }
 
 declare module 'vm' {
-  class SourceTextModule {
+
+  class Module {
+    dependencySpecifiers: ReadonlyArray<string>;
+    error?: any;
+    namespace: any;
     status: string;
     identifier: string;
-    namespace: any;
-    context: any;
-    error?: any;
-    dependencySpecifiers: ReadonlyArray<string>;
-
-    constructor(source: string, options: any);
-
-    link(linker: (specifier: string, referencingModule: SourceTextModule) => SourceTextModule | Promise<SourceTextModule>): Promise<void>;
-    instantiate(): void;
     evaluate(): Promise<{result: unknown}>;
+    link(linker: (specifier: string, referencingModule: Module) => Module | Promise<Module>): Promise<void>;
+  }
+
+  class SourceTextModule extends Module {
+    context: any;
+    constructor(source: string, options: any);
+    instantiate(): void;
+  }
+
+  class SyntheticModule extends Module {
+    constructor(exportNames: string[], evaluateCallback: (this: SyntheticModule) => void, options: any);
+    setExport(name: string, value: any);
   }
 }

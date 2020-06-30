@@ -14,17 +14,18 @@
  */
 
 import * as path from 'path';
-import * as fs from 'fs';
+import {promises as fs} from 'fs';
 import {URL} from 'url';
 import * as vm from 'vm';
 import resolve from 'resolve';
-
-const {readFile} = fs.promises;
+import {builtinModules} from 'module';
 
 type PackageJSON = {main?: string; module?: string; 'jsnext:main'?: string};
 
 const isRelativeOrAbsolutePath = (s: string) =>
   s.match(/^(\.){0,2}\//) !== null;
+
+const builtIns = new Set(builtinModules);
 
 /**
  * Resolves specifiers using web-ish Node module resolution. Web-compatible
@@ -36,12 +37,6 @@ const isRelativeOrAbsolutePath = (s: string) =>
  * currently hard-coded, but should instead be done with a configuration object.
  */
 const resolveSpecifier = (specifier: string, referrer: string): URL => {
-  // console.log('resolveSpecifier', specifier, referrer);
-
-  // if (specifier.endsWith('render-light.js')) {
-  //   console.log('resolveSpecifier render-light.js', specifier, referrer);
-  // }
-
   if (referrer === undefined) {
     throw new Error('referrer is undefined');
   }
@@ -58,7 +53,7 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
       return new URL(specifier, referrer);
     }
 
-    if (specifier.startsWith('lit-html')) {
+    if (specifier.startsWith('lit-html') || specifier.startsWith('lit-element')) {
       // Override where we resolve lit-html from so that we always resolve to
       // a single version of lit-html.
       referrer = import.meta.url;
@@ -78,17 +73,16 @@ const resolveSpecifier = (specifier: string, referrer: string): URL => {
     });
     return new URL(`file:${modulePath}`);
   }
-  // if (specifier.endsWith('render-light.js')) {
-  //   console.log('  ', moduleURL.pathname);
-  // }
 };
 
 /**
  * Web-like import.meta initializer that sets up import.meta.url
  */
-const initializeImportMeta = (meta: any, module: vm.SourceTextModule) => {
+const initializeImportMeta = (meta: any, module: vm.Module) => {
   meta.url = module.identifier;
 };
+
+let vmContextId = 0;
 
 /**
  * Imports a module given by `path` into a new VM context with `sandbox` as the
@@ -106,17 +100,18 @@ export const importModule = async (
   // TODO: maybe move this call outside this function and share across requests.
   // Only if we can freeze all globals though.
   const context = vm.createContext(sandbox);
+  vmContextId++;
 
   // TODO: consider a multi-level cache with one cache shared across requests.
   // We could mark some modules as safe for reuse, like lit-html & lit-element.
   // Only possible if we can freeze and reuse the global as needed for the
   // above TODO as well. Even then, any object shared across requests could be a
   // potential source of cross-request leaks.
-  const moduleCache = new Map<string, Promise<vm.SourceTextModule>>();
+  const moduleCache = new Map<string, Promise<vm.Module>>();
 
   /**
    * Performs the actual loading of module source from disk, creates the
-   * SourceTextModule instance, and maintains the module cache.
+   * Module instance, and maintains the module cache.
    *
    * Used directly by `importModule` and by the linker and dynamic import()
    * support function.
@@ -124,7 +119,7 @@ export const importModule = async (
   const loadModule = async (
     specifier: string,
     referrer: string
-  ): Promise<vm.SourceTextModule> => {
+  ): Promise<vm.Module> => {
     const moduleURL = resolveSpecifier(specifier, referrer);
     if (moduleURL.protocol !== 'file:') {
       throw new Error(`Unsupported protocol: ${moduleURL.protocol}`);
@@ -135,15 +130,27 @@ export const importModule = async (
       return modulePromise;
     }
     modulePromise = (async () => {
-      const source = await readFile(modulePath, 'utf-8');
-      // TODO: store and re-use cachedData:
-      // https://nodejs.org/api/vm.html#vm_constructor_new_vm_sourcetextmodule_code_options
-      return new vm.SourceTextModule(source, {
-        initializeImportMeta,
-        importModuleDynamically,
-        context,
-        identifier: moduleURL.toString(),
-      });
+      // Provide basic support for built-in modules (needed for node shims of
+      // DOM API's like fetch)
+      if (builtIns.has(specifier)) {
+        const mod = await import(specifier);
+        return new vm.SyntheticModule(Object.keys(mod), function() {
+          Object.keys(mod).forEach(key => this.setExport(key, mod[key]));
+        }, {
+          context,
+          identifier: specifier + `:${vmContextId}`,
+        });
+      } else {
+        const source = await fs.readFile(modulePath, 'utf-8');
+        // TODO: store and re-use cachedData:
+        // https://nodejs.org/api/vm.html#vm_constructor_new_vm_sourcetextmodule_code_options
+        return new vm.SourceTextModule(source, {
+          initializeImportMeta,
+          importModuleDynamically,
+          context,
+          identifier: moduleURL.toString() + `:${vmContextId}`,
+        });
+      }
     })();
     moduleCache.set(modulePath, modulePromise);
     return modulePromise;
@@ -154,14 +161,14 @@ export const importModule = async (
    */
   const linker = async (
     specifier: string,
-    referencingModule: vm.SourceTextModule
-  ): Promise<vm.SourceTextModule> => {
+    referencingModule: vm.Module
+  ): Promise<vm.Module> => {
     return loadModule(specifier, referencingModule.identifier);
   };
 
   const importModuleDynamically = async (
     specifier: string,
-    referencingModule: vm.SourceTextModule
+    referencingModule: vm.Module
   ) => {
     return _importModule(specifier, referencingModule.identifier);
   };

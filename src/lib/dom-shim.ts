@@ -20,86 +20,121 @@
  * CustomElementRegistry however.
  */
 
-class HTMLElement {
-  attachShadow() {
-    return {};
-  }
+import fetch from 'node-fetch';
+
+/**
+ * Constructs a fresh instance of the "window" vm context to use for 
+ * evaluating user SSR code.  Includes a minimal shim of DOM APIs.
+ * 
+ * @param props Additional properties to add to the window global 
+ */
+export const getWindow = (props: {[key: string]: any} = {}): {[key: string]: any} => {
+
+  const HTMLElement = class HTMLElement {
+    attachShadow() {
+      return {};
+    }
+  };
+
+  const Document = class Document {
+    get adoptedStyleSheets() {
+      return [];
+    }
+  };
+
+  const CSSStyleSheet = class CSSStyleSheet {
+    replace() {}
+  };
+
+  type CustomElementRegistration = {
+    ctor: {new (): HTMLElement};
+    observedAttributes: string[];
+  };
+
+  const CustomElementRegistry = class CustomElementRegistry {
+    __definitions = new Map<string, CustomElementRegistration>();
+
+    define(name: string, ctor: {new (): HTMLElement}) {
+      this.__definitions.set(name, {
+        ctor,
+        observedAttributes: (ctor as any).observedAttributes,
+      });
+    }
+
+    get(name: string) {
+      const definition = this.__definitions.get(name);
+      return definition && definition.ctor;
+    }
+  };
+
+  // btoa Polyfill from  https://github.com/MaxArt2501/base64-js/blob/master/base64.js
+  // base64 character set, plus padding character (=)
+  const b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+
+  const btoa = (string: string) => {
+    string = String(string);
+    let bitmap,
+      a,
+      b,
+      c,
+      result = '',
+      i = 0,
+      rest = string.length % 3; // To determine the final padding
+
+    for (; i < string.length; ) {
+      if (
+        (a = string.charCodeAt(i++)) > 255 ||
+        (b = string.charCodeAt(i++)) > 255 ||
+        (c = string.charCodeAt(i++)) > 255
+      )
+        throw new TypeError(
+          "Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range."
+        );
+
+      bitmap = (a << 16) | (b << 8) | c;
+      result +=
+        b64.charAt((bitmap >> 18) & 63) +
+        b64.charAt((bitmap >> 12) & 63) +
+        b64.charAt((bitmap >> 6) & 63) +
+        b64.charAt(bitmap & 63);
+    }
+
+    // If there's need of padding, replace the last 'A's with equal signs
+    return rest ? result.slice(0, rest - 3) + '==='.substring(rest) : result;
+  };
+
+  const window = {
+    HTMLElement,
+    Document,
+    CSSStyleSheet,
+    customElements: new CustomElementRegistry(),
+    btoa,
+    console: {
+      log(...args: any[]) { console.log(...args); },
+      info(...args: any[]) { console.info(...args); },
+      warn(...args: any[]) { console.warn(...args); },
+      debug(...args: any[]) { console.debug(...args); },
+    },
+    fetch: (url: URL, init: {}) => fetch(url, init),
+    
+    // No-op any async tasks
+    requestAnimationFrame() { },
+    setTimeout() { },   
+    clearTimeout() { },
+
+    // Required for node-fetch
+    Buffer,
+
+    // Set below
+    window: undefined as any,
+    global: undefined as any,
+
+    // User-provided globals, like `require`
+    ...props
+  };
+
+  window.window = window;
+  window.global = window; // Required for node-fetch
+
+  return window;
 }
-
-class Document {
-  get adoptedStyleSheets() {
-    return [];
-  }
-}
-
-class CSSStyleSheet {
-  replace() {}
-}
-
-type CustomElementRegistration = {
-  ctor: {new (): HTMLElement};
-  observedAttributes: string[];
-};
-
-class CustomElementRegistry {
-  __definitions = new Map<string, CustomElementRegistration>();
-
-  define(name: string, ctor: {new (): HTMLElement}) {
-    this.__definitions.set(name, {
-      ctor,
-      observedAttributes: (ctor as any).observedAttributes,
-    });
-  }
-
-  get(name: string) {
-    const definition = this.__definitions.get(name);
-    return definition && definition.ctor;
-  }
-}
-
-// btoa Polyfill from  https://github.com/MaxArt2501/base64-js/blob/master/base64.js
-// base64 character set, plus padding character (=)
-const b64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-
-const btoa = (string: string) => {
-  string = String(string);
-  let bitmap,
-    a,
-    b,
-    c,
-    result = '',
-    i = 0,
-    rest = string.length % 3; // To determine the final padding
-
-  for (; i < string.length; ) {
-    if (
-      (a = string.charCodeAt(i++)) > 255 ||
-      (b = string.charCodeAt(i++)) > 255 ||
-      (c = string.charCodeAt(i++)) > 255
-    )
-      throw new TypeError(
-        "Failed to execute 'btoa' on 'Window': The string to be encoded contains characters outside of the Latin1 range."
-      );
-
-    bitmap = (a << 16) | (b << 8) | c;
-    result +=
-      b64.charAt((bitmap >> 18) & 63) +
-      b64.charAt((bitmap >> 12) & 63) +
-      b64.charAt((bitmap >> 6) & 63) +
-      b64.charAt(bitmap & 63);
-  }
-
-  // If there's need of padding, replace the last 'A's with equal signs
-  return rest ? result.slice(0, rest - 3) + '==='.substring(rest) : result;
-};
-
-export const window = {
-  HTMLElement,
-  Document,
-  CSSStyleSheet,
-  window: undefined as any,
-  customElements: new CustomElementRegistry(),
-  console,
-  btoa,
-};
-window.window = window;
