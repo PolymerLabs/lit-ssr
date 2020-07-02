@@ -12,60 +12,44 @@
  * http://polymer.github.io/PATENTS.txt
  */
 
-import {ElementRenderer} from './element-renderer.js';
-import {LitElement, TemplateResult, CSSResult} from 'lit-element';
-import {render, renderValue, RenderInfo} from './render-lit-html.js';
+import {LitElement, CSSResult} from 'lit-element';
+import {render} from './render-lit-html.js';
 
-export type Constructor<T> = {new (): T};
-
-/**
- * An object that renders elements of a certain type.
- */
-export class LitElementRenderer implements ElementRenderer {
-  constructor(public element: LitElement) {}
-
-  *renderElement(): IterableIterator<string> {
-    const renderResult = ((this.element as unknown) as {
-      render(): TemplateResult;
-    }).render();
+function *renderChildren(element: LitElement, result: any, useShadowRoot: boolean): IterableIterator<string> {
+  if (useShadowRoot) {
     yield '<template shadowroot="open">';
-    // Render styles.
-    const ctor = customElements.get(this.element.tagName!);
-    const styles = [(ctor as any).styles].flat(Infinity);
-    let hasCssResult = false;
+  }
+  // Render styles
+  const styles = [(element.constructor as typeof LitElement).styles]
+    .flat(Infinity)
+    .filter(style => style instanceof CSSResult);
+  if (styles.length) {
+    yield '<style>';
     for (const style of styles) {
-      if (style instanceof CSSResult) {
-        if (!hasCssResult) {
-          hasCssResult = true;
-          yield '<style>';
-        }
-        // TODO(sorvell): support ShadyCSS transformed styles. These should
-        // be written once.
-        //const scoped = StyleTransformer.css(style.cssText, tagName);
-        yield style.cssText;
-      }
+      yield (style as CSSResult).cssText;
     }
-    if (hasCssResult) {
-      yield '</style>';
-    }
-    yield* render(renderResult);
+    yield '</style>';
+  }
+
+  // Render html
+  yield* render(result);
+  if (useShadowRoot) {
     yield '</template>';
   }
+}
 
-  setProperty(name: string, value: unknown) {
-    (this.element as any)[name] = value;
+// Install SSR render hook
+LitElement.render = function(result: unknown, container: Element | DocumentFragment, _options: any) {
+  const instance = (container as ShadowRoot).host ? (container as ShadowRoot).host : container;
+  if (!(instance instanceof LitElement)) {
+    throw new Error('For compatibiltiy with SSR, renderRoot must either be the shadowRoot of the LitElement or the LitElement itself.')
   }
+  instance.ssrRenderChildren = renderChildren(instance, result, Boolean((container as ShadowRoot).host));
+};
 
-  setAttribute(name: string, value: string | null) {
-    // Note, this should always exist for LitElement, but we're not yet
-    // explicitly checking for LitElement.
-    if (this.element.attributeChangedCallback) {
-      this.element.attributeChangedCallback(name, null, value as string);
-    }
-  }
-
-  renderLight(renderInfo: RenderInfo) {
-    const templateResult = (this.element as any)?.renderLight();
-    return templateResult ? renderValue(templateResult, renderInfo) : '';
-  }
+// Make rendering synchronous to connectedCallback()
+const connectedCallback = LitElement.prototype.connectedCallback;
+LitElement.prototype.connectedCallback = function() {
+  connectedCallback.call(this);
+  this.performUpdate(true);
 }

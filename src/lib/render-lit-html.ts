@@ -43,13 +43,12 @@ import {
   isElement,
 } from './util/parse5-utils.js';
 
-import {CSSResult} from 'lit-element';
-import StyleTransformer from '@webcomponents/shadycss/src/style-transformer.js';
 import {isDirective} from 'lit-html/lib/directive.js';
 import {isRenderLightDirective} from 'lit-element/lib/render-light.js';
-import {LitElementRenderer} from './lit-element-renderer.js';
+import './lit-element-renderer.js';
 import {reflectedAttributeName} from './reflected-attributes.js';
 import { TemplateFactory } from 'lit-html/lib/template-factory';
+import {escapeAttribute, escapeTextContent} from './util/escaping.js';
 
 declare module 'parse5' {
   interface DefaultTreeElement {
@@ -181,14 +180,19 @@ type AttributePartOp = {
 type CustomElementOpenOp = {
   type: 'custom-element-open';
   tagName: string;
-  ctor: any;
+  ctor: RenderableCustomElement;
+  staticAttributes: Map<string, string>;
 };
 
 /**
  * Operation to render a custom element, usually its shadow root.
  */
-type CustomElementRenderOp = {
-  type: 'custom-element-render';
+type CustomElementRenderChildrenOp = {
+  type: 'custom-element-render-children';
+};
+
+type CustomElementRenderAttributesOp = {
+  type: 'custom-element-render-attributes';
 };
 
 /**
@@ -204,7 +208,8 @@ type Op =
   | NodePartOp
   | AttributePartOp
   | CustomElementOpenOp
-  | CustomElementRenderOp
+  | CustomElementRenderAttributesOp
+  | CustomElementRenderChildrenOp
   | CustomElementClosedOp;
 
 const getTemplate = (result: TemplateResult) => {
@@ -319,6 +324,9 @@ const getTemplate = (result: TemplateResult) => {
               type: 'custom-element-open',
               tagName,
               ctor,
+              staticAttributes: new Map(node.attrs
+                .filter(attr => !attr.name.endsWith(boundAttributeSuffix))
+                .map(attr => ([attr.name, attr.value])))
             });
           }
         }
@@ -350,12 +358,29 @@ const getTemplate = (result: TemplateResult) => {
                 useCustomElementInstance: ctor !== undefined,
               });
               skipTo(attrEndOffset);
+            } else if (node.isDefinedCustomElement) {
+              // We will wait until after connectedCallback() and render all
+              // custom element attributes then
+              const attrSourceLocation = node.sourceCodeLocation!.attrs[
+                attr.name
+              ];
+              flushTo(attrSourceLocation.startOffset);
+              skipTo(attrSourceLocation.endOffset);
             }
           }
         }
 
         if (writeTag) {
-          flushTo(node.sourceCodeLocation!.startTag.endOffset);
+          if (node.isDefinedCustomElement) {
+            flushTo(node.sourceCodeLocation!.startTag.endOffset - 1);
+            ops.push({
+              type: 'custom-element-render-attributes'
+            });
+            flush('>');
+            skipTo(node.sourceCodeLocation!.startTag.endOffset);
+          } else {
+            flushTo(node.sourceCodeLocation!.startTag.endOffset);
+          }
         }
 
         if (boundAttrsCount > 0) {
@@ -364,7 +389,7 @@ const getTemplate = (result: TemplateResult) => {
 
         if (ctor !== undefined) {
           ops.push({
-            type: 'custom-element-render',
+            type: 'custom-element-render-children',
           });
         }
       }
@@ -384,8 +409,14 @@ const getTemplate = (result: TemplateResult) => {
   return t;
 };
 
+type RenderableCustomElement = HTMLElement & {
+  new(): RenderableCustomElement;
+  connectedCallback?(): void;
+  ssrRenderChildren?: IterableIterator<string> | undefined;
+};
+
 export type RenderInfo = {
-  customElementInstanceStack: Array<LitElementRenderer | undefined>;
+  customElementInstanceStack: Array<RenderableCustomElement | undefined>;
 };
 
 declare global {
@@ -394,22 +425,16 @@ declare global {
   }
 }
 
-/**
- * Returns the scoped style sheets required by all elements currently defined.
- */
-export const getScopedStyles = () => {
-  const scopedStyles = [];
-  for (const [tagName, definition] of (customElements as any).__definitions) {
-    const styles = [(definition.ctor as any).styles].flat(Infinity);
-    for (const style of styles) {
-      if (style instanceof CSSResult) {
-        const scoped = StyleTransformer.css(style.cssText, tagName);
-        scopedStyles.push(scoped);
-      }
+function* renderCustomElementAttributes(instance: RenderableCustomElement): IterableIterator<string> {
+  const attrs = instance.attributes;
+  for (let i=0, name, value; i<attrs.length && ({name, value}=attrs[i]); i++){
+    if (value === '') {
+      yield ` ${name}`;
+    } else {
+      yield ` ${name}="${escapeAttribute(value)}"`;
     }
   }
-  return scopedStyles;
-};
+}
 
 export function* render(value: unknown): IterableIterator<string> {
   yield* renderValue(value, {customElementInstanceStack: []});
@@ -425,7 +450,7 @@ export function* renderValue(
     const instance = getLast(renderInfo.customElementInstanceStack);
     // TODO, move out of here into something LitElement specific
     if (instance !== undefined) {
-      yield* instance.renderLight(renderInfo);
+      yield* renderValue((instance as any)?.renderLight(), renderInfo);
     }
     value = null;
   } else if (isDirective(value)) {
@@ -445,8 +470,7 @@ export function* renderValue(
         yield* renderValue(item, renderInfo);
       }
     } else {
-      // TODO: convert value to string, handle arrays, directives, etc.
-      yield String(value);
+      yield escapeTextContent(String(value));
     }
   }
   yield `<!--/lit-part-->`;
@@ -518,11 +542,10 @@ export function* renderTemplateResult(
               const value = committer.getValue();
               if (value !== noChange) {
                 if (instance !== undefined) {
-                  instance.setProperty(propertyName, value);
+                  (instance as any)[propertyName] = value;
                 }
                 if (reflectedName !== undefined) {
-                  // TODO: escape the attribute string
-                  yield `${reflectedName}="${value}"`;
+                  yield `${reflectedName}="${escapeAttribute(String(value))}"`;
                 }
 
               }
@@ -549,13 +572,13 @@ export function* renderTemplateResult(
             part.setValue(result.values[partIndex + i]);
             part.resolvePendingDirective();
           });
-          // TODO: escape the attribute string
           const value = committer.getValue();
           if (value !== noChange) {
             if (instance !== undefined) {
               instance.setAttribute(attributeName, value as string);
+            } else {
+              yield `${attributeName}="${escapeAttribute(String(value))}"`;
             }
-            yield `${attributeName}="${value}"`;
           }
         }
         partIndex += statics.length - 1;
@@ -566,19 +589,34 @@ export function* renderTemplateResult(
         // Instantiate the element and stream its render() result
         let instance = undefined;
         try {
-          const element = new ctor();
-          (element as any).tagName = op.tagName;
-          instance = new LitElementRenderer(element);
+          instance = new ctor();
+          (instance as any).tagName = op.tagName;
+          for (const [name, value] of op.staticAttributes) {
+            instance.setAttribute(name, value);
+          }
         } catch (e) {
-          console.error('Exception in custom element constructor', e);
+          console.error(`Exception in custom element callback for ${op.tagName}`, e);
         }
         renderInfo.customElementInstanceStack.push(instance);
         break;
       }
-      case 'custom-element-render': {
+      case 'custom-element-render-attributes': {
         const instance = getLast(renderInfo.customElementInstanceStack);
         if (instance !== undefined) {
-          yield* instance.renderElement();
+          if (instance.connectedCallback) {
+            instance?.connectedCallback();
+          }
+          if (renderInfo.customElementInstanceStack.length > 1) {
+            yield ' defer-hydration';
+          }
+          yield* renderCustomElementAttributes(instance);
+        }
+        break;
+      }
+      case 'custom-element-render-children': {
+        const instance = getLast(renderInfo.customElementInstanceStack);
+        if (instance !== undefined && instance.ssrRenderChildren) {
+          yield* instance.ssrRenderChildren;
         }
         break;
       }

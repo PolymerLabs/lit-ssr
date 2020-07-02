@@ -3311,11 +3311,6 @@ export const tests: {[name: string] : SSRTest} = {
 
   'LitElement: Reflected property binding': () => {
     return {
-      // TODO: lit-element-renderer does not yet support reflected properties;
-      // should the renderer call into `addPropertiesForElement`? The first time
-      // a renderer is created for a given element type?
-      // https://github.com/PolymerLabs/lit-ssr/issues/61
-      skip: true,
       registerElements() {
         class LEReflectedBinding extends LitElement {
           @property({reflect: true})
@@ -3345,7 +3340,7 @@ export const tests: {[name: string] : SSRTest} = {
         {
           args: ['boundProp2'],
           async check(assert: Chai.Assert, dom: HTMLElement) {
-            const el = dom.querySelector('le-prop-binding')! as LitElement;
+            const el = dom.querySelector('le-reflected-binding')! as LitElement;
             await el.updateComplete;
             assert.strictEqual((el as any).prop, 'boundProp2');
           },
@@ -3356,6 +3351,10 @@ export const tests: {[name: string] : SSRTest} = {
         },
       ],
       stableSelectors: ['le-reflected-binding'],
+      // LitElement unconditionally sets reflecting properties to attributes
+      // on a property change, even if the attribute was already there
+      expectMutationsDuringUpgrade: true,
+      expectMutationsDuringHydration: true,
     };
   },
 
@@ -3377,9 +3376,10 @@ export const tests: {[name: string] : SSRTest} = {
       expectations: [
         {
           args: ['boundProp1'],
-          async check(_assert: Chai.Assert, dom: HTMLElement) {
+          async check(assert: Chai.Assert, dom: HTMLElement) {
             const el = dom.querySelector('le-attr-binding')! as LitElement;
             await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp1');
           },
           html: {
             root: `<le-attr-binding prop="boundProp1"></le-attr-binding>`,
@@ -3388,9 +3388,10 @@ export const tests: {[name: string] : SSRTest} = {
         },
         {
           args: ['boundProp2'],
-          async check(_assert: Chai.Assert, dom: HTMLElement) {
+          async check(assert: Chai.Assert, dom: HTMLElement) {
             const el = dom.querySelector('le-attr-binding')! as LitElement;
             await el.updateComplete;
+            assert.strictEqual((el as any).prop, 'boundProp2');
           },
           html: {
             root: `<le-attr-binding prop="boundProp2"></le-attr-binding>`,

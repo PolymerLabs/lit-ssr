@@ -17,7 +17,7 @@ import {repeat} from 'lit-html/directives/repeat.js';
 import {classMap} from 'lit-html/directives/class-map.js';
 import {LitElement, css, property, customElement} from 'lit-element';
 
-export {render, getScopedStyles} from '../../lib/render-lit-html.js';
+export {render} from '../../lib/render-lit-html.js';
 
 /* Real Tests */
 

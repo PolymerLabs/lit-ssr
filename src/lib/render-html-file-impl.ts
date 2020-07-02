@@ -37,7 +37,6 @@ export async function renderFile(options: RenderAppOptions) {
     fetch,
     process: {env: {NODE_ENV: 'production', ...options.env || {}}}
   });
-  debugger
   // Make sure file exists; if not, use fallback
   let file = path.join(options.root, url.pathname);
   let exists = false;
