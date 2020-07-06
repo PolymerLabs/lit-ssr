@@ -417,6 +417,7 @@ type RenderableCustomElement = HTMLElement & {
 
 export type RenderInfo = {
   customElementInstanceStack: Array<RenderableCustomElement | undefined>;
+  deferChildHydration?: boolean;
 };
 
 declare global {
@@ -436,8 +437,12 @@ function* renderCustomElementAttributes(instance: RenderableCustomElement): Iter
   }
 }
 
-export function* render(value: unknown): IterableIterator<string> {
-  yield* renderValue(value, {customElementInstanceStack: []});
+export type SSRRenderOptions = {
+  deferChildHydration?: boolean;
+};
+
+export function* render(value: unknown, options?: SSRRenderOptions): IterableIterator<string> {
+  yield* renderValue(value, {customElementInstanceStack: [], ...(options)});
 }
 
 export function* renderValue(
@@ -606,7 +611,7 @@ export function* renderTemplateResult(
           if (instance.connectedCallback) {
             instance?.connectedCallback();
           }
-          if (renderInfo.customElementInstanceStack.length > 1) {
+          if (renderInfo.deferChildHydration) {
             yield ' defer-hydration';
           }
           yield* renderCustomElementAttributes(instance);

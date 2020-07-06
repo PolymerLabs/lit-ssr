@@ -32,7 +32,7 @@ function *renderChildren(element: LitElement, result: any, useShadowRoot: boolea
   }
 
   // Render html
-  yield* render(result);
+  yield* render(result, {deferChildHydration: true});
   if (useShadowRoot) {
     yield '</template>';
   }
