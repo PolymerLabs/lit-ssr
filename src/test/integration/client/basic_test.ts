@@ -25,6 +25,9 @@ LitElement.hydrate = hydrate;
 
 const assert = chai.assert;
 
+// Types don't seem to include options argument
+const assertLightDom: ((el: Element | ShadowRoot, str: string, opt: any) => void) = assert.lightDom.equal;
+
 /**
  * Checks a tree of expected HTML against the DOM; the expected HTML can either
  * be a string or an object containing keys of querySelector queries mapped to
@@ -70,7 +73,7 @@ const assertHTML = (container: Element | ShadowRoot, html: SSRExpectedHTML): voi
       const subHtml = html[query];
       if (query === 'root') {
         assert.typeOf(subHtml, 'string', `html expectation for ':root' must be a string.`);
-        assert.lightDom.equal(container, subHtml as string);
+        assertLightDom(container, subHtml as string, {ignoreAttributes: ['defer-hydration']});
       } else {
         const subContainers = Array.from(container.querySelectorAll(query))
         ;
