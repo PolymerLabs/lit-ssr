@@ -30,19 +30,46 @@ import fetch from 'node-fetch';
  */
 export const getWindow = (props: {[key: string]: any} = {}): {[key: string]: any} => {
 
-  const HTMLElement = class HTMLElement {
+  const attributes: WeakMap<any, Map<string, string>> = new WeakMap();
+  const attributesForElement = (element: any) => {
+    let attrs = attributes.get(element);
+    if (!attrs) {
+      attributes.set(element, attrs = new Map());
+    }
+    return attrs;
+  }
+
+  abstract class HTMLElement {
+    get attributes() {
+      return Array.from(attributesForElement(this))
+        .map(([name, value]) => ({name, value}));
+    }
+    abstract attributeChangedCallback?(name: string, old: string | null, value: string | null): void;
+    setAttribute(name: string, value: string) {
+      attributesForElement(this).set(name, value);
+    }
+    removeAttribute(name: string) {
+      attributesForElement(this).delete(name);
+    }
+    hasAttribute(name: string) {
+      return attributesForElement(this).has(name);
+    }
     attachShadow() {
-      return {};
+      return { host: this };
+    }
+    getAttribute(name: string) {
+      const value = attributesForElement(this).get(name);
+      return value === undefined ? null : value;
     }
   };
 
-  const Document = class Document {
+  class Document {
     get adoptedStyleSheets() {
       return [];
     }
   };
 
-  const CSSStyleSheet = class CSSStyleSheet {
+  class CSSStyleSheet {
     replace() {}
   };
 
@@ -51,7 +78,7 @@ export const getWindow = (props: {[key: string]: any} = {}): {[key: string]: any
     observedAttributes: string[];
   };
 
-  const CustomElementRegistry = class CustomElementRegistry {
+  class CustomElementRegistry {
     __definitions = new Map<string, CustomElementRegistration>();
 
     define(name: string, ctor: {new (): HTMLElement}) {

@@ -16,29 +16,78 @@
 
 export type Constructor<T> = {new (): T};
 
+import {escapeAttribute} from './util/escaping.js';
+import {RenderInfo} from './render-lit-html.js';
+
 /**
  * An object that renders elements of a certain type.
  */
-export interface ElementRenderer {
-  element: HTMLElement;
+export abstract class ElementRenderer {
+  
+  constructor(public element: HTMLElement) {}
 
   /**
-   * Render a single element's ShadowRoot contents.
-   *
+   * Should implement server-appropriate implementation of connectedCallback
    */
-  renderElement(): IterableIterator<string>;
+  abstract connectedCallback(): void;
+
+  /**
+   * Should implement server-appropriate implementation of attributeChangedCallback
+   */
+  abstract attributeChangedCallback(name: string, old: string | null, value: string | null): void;
 
   /**
    * Handles setting a property.
+   * 
+   * Default implementation sets the property on the renderer's element instance.
+   * 
    * @param name Name of the property
    * @param value Value of the property
    */
-  setProperty(name: string, value: unknown): void;
+  setProperty(name: string, value: unknown) {
+    (this.element as any)[name] = value;
+  };
 
   /**
    * Handles setting an attribute on an element.
+   * 
+   * Default implementation calls `setAttribute` on the renderer's element
+   * instance, and calls the abstract `attributeChangedCallback` on the
+   * renderer.
+   * 
    * @param name Name of the attribute
    * @param value Value of the attribute
    */
-  setAttribute(name: string, value: string | null): void;
+  setAttribute(name: string, value: string) {
+    const old = this.element.getAttribute(name);
+    this.element.setAttribute(name, value);
+    this.attributeChangedCallback(name, old, value);
+  };
+
+  /**
+   * Render a single element's ShadowRoot children.
+   */
+  abstract renderChildren(): IterableIterator<string>;
+
+  /**
+   * Render an element's light DOM children.
+   */
+  abstract renderLight(renderInfo: RenderInfo): IterableIterator<string>;
+
+  /**
+   * Render an element's attributes.
+   * 
+   * Default implementation serializes all attributes on the element instance.
+   */
+  *renderAttributes(): IterableIterator<string> {
+    const {attributes} = this.element;
+    for (let i=0, name, value; i<attributes.length && ({name, value}=attributes[i]); i++){
+      if (value === '') {
+        yield ` ${name}`;
+      } else {
+        yield ` ${name}="${escapeAttribute(value)}"`;
+      }
+    }
+  }
+
 }
