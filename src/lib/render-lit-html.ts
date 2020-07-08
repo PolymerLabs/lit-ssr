@@ -420,13 +420,8 @@ const getTemplate = (result: TemplateResult) => {
   return t;
 };
 
-export type SSRRenderOptions = {
-  deferChildHydration?: boolean;
-};
-
 export type RenderInfo = {
   customElementInstanceStack: Array<ElementRenderer | undefined>;
-  options: SSRRenderOptions;
 };
 
 declare global {
@@ -452,8 +447,8 @@ export const getScopedStyles = () => {
   return scopedStyles;
 };
 
-export function* render(value: unknown, options: SSRRenderOptions = {}): IterableIterator<string> {
-  yield* renderValue(value, {customElementInstanceStack: [], options});
+export function* render(value: unknown): IterableIterator<string> {
+  yield* renderValue(value, {customElementInstanceStack: []});
 }
 
 export function* renderValue(
@@ -619,9 +614,6 @@ export function* renderTemplateResult(
         if (instance !== undefined) {
           if (instance.connectedCallback) {
             instance.connectedCallback();
-          }
-          if (renderInfo.options.deferChildHydration) {
-            yield ' defer-hydration';
           }
           yield* instance.renderAttributes();
         }

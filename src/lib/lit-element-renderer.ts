@@ -56,7 +56,7 @@ export class LitElementRenderer extends ElementRenderer {
       yield '</style>';
     }
     // Render template
-    yield* render((this.element as any).render(), {deferChildHydration: true});
+    yield* render((this.element as any).render());
     // Close shadow root
     yield '</template>';
   }
