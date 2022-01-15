@@ -1,3 +1,7 @@
+# OUT OF DATE
+
+This repository is out of date. See [`@lit-labs/ssr`](https://github.com/lit/lit/tree/main/packages/labs/ssr) instead
+
 # lit-ssr
 
 Experimental lit-html & LitElement SSR server
