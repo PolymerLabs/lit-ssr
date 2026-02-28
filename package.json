@@ -46,7 +46,7 @@
     "@types/koa-static": "^4.0.1",
     "@types/tape": "^4.2.33",
     "@webcomponents/shadycss": "^1.9.1",
-    "koa": "^2.7.0",
+    "koa": "^3.1.2",
     "koa-node-resolve": "^1.0.0-pre.5",
     "koa-static": "^5.0.0",
     "lit-element": "Polymer/lit-html#hydration-hydrate",
